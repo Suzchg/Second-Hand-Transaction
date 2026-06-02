@@ -2,6 +2,7 @@ package com.secondhand.product.service;
 
 import com.secondhand.common.AppException;
 import com.secondhand.product.entity.Product;
+import com.secondhand.product.entity.ProductCondition;
 import com.secondhand.product.entity.ProductStatus;
 import com.secondhand.product.repository.ProductRepository;
 import org.springframework.data.domain.Page;
@@ -23,9 +24,11 @@ public class ProductService {
     }
 
     public record CreateCommand(String title, Integer priceCent, String coverImageUrl,
-                                 String description, Long categoryId, Integer quantity) {}
+                                 String description, Long categoryId, Integer quantity,
+                                 ProductCondition condition) {}
     public record UpdateCommand(String title, Integer priceCent, String coverImageUrl,
-                                 String description, ProductStatus status, Long categoryId) {}
+                                 String description, ProductStatus status, Long categoryId,
+                                 ProductCondition condition) {}
 
     @Transactional
     public Product create(long sellerId, CreateCommand cmd) {
@@ -38,6 +41,7 @@ public class ProductService {
         p.setDescription(cmd.description());
         p.setCategoryId(cmd.categoryId());
         p.setQuantity(cmd.quantity() != null && cmd.quantity() > 0 ? cmd.quantity() : 1);
+        p.setCondition(cmd.condition());
         p.setStatus(ProductStatus.ON_SALE);
         p.setCreatedAt(now);
         p.setUpdatedAt(now);
@@ -63,6 +67,7 @@ public class ProductService {
             p.setStatus(cmd.status());
         }
         if (cmd.categoryId() != null) p.setCategoryId(cmd.categoryId());
+        if (cmd.condition() != null) p.setCondition(cmd.condition());
         p.setUpdatedAt(LocalDateTime.now());
         return productRepo.save(p);
     }
@@ -105,5 +110,12 @@ public class ProductService {
     public Page<Product> getMyProducts(long sellerId, int page, int size) {
         return productRepo.findBySellerIdOrderByCreatedAtDesc(
                 sellerId, PageRequest.of(page, Math.min(size, 50)));
+    }
+
+    /** 某卖家在售商品（公开查看） */
+    @Transactional(readOnly = true)
+    public Page<Product> getSellerOnSaleProducts(long sellerId, int page, int size) {
+        return productRepo.findByStatusAndQuantityGreaterThanAndSellerId(
+                ProductStatus.ON_SALE, sellerId, PageRequest.of(page, Math.min(size, 50)));
     }
 }

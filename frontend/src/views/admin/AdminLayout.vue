@@ -10,6 +10,7 @@ const menu = [
   { path: '/admin/users', label: '👥 用户管理' },
   { path: '/admin/products', label: '📦 商品管理' },
   { path: '/admin/orders', label: '📋 订单管理' },
+  { path: '/admin/reports', label: '🚨 举报管理' },
 ]
 
 function isActive(p) { return route.path === p }

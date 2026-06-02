@@ -16,6 +16,9 @@ const boughtOrders = ref([])
 const showSold = ref(false)
 const showBought = ref(false)
 
+const favoritedProducts = ref([])
+const showFavorites = ref(false)
+
 const orderStatusLabel = {
   WAIT_PAY: '待支付', WAIT_DELIVER: '待发货', WAIT_RECEIVE: '待收货',
   COMPLETED: '已完成', CANCELLED: '已取消', AFTER_SALE: '售后中',
@@ -52,6 +55,22 @@ async function loadSold() {
     }))
     // 把标题注入到 order 对象上
     soldOrders.value.forEach(o => o._title = titles[o.productId] || `商品 #${o.productId}`)
+  } catch (e) { /* ignore */ }
+}
+
+async function loadFavorites() {
+  showFavorites.value = !showFavorites.value
+  if (!showFavorites.value || favoritedProducts.value.length) return
+  try {
+    const page = await api('/api/users/favorites?size=50')
+    const favs = page.content || []
+    const ids = [...new Set(favs.map(f => f.productId))]
+    const products = {}
+    await Promise.all(ids.map(async id => {
+      try { const prod = await api(`/api/products/${id}`, { auth: false }); products[id] = prod }
+      catch { products[id] = { title: `商品 #${id}`, priceCent: 0, coverImageUrl: '' } }
+    }))
+    favoritedProducts.value = favs.map(f => ({ ...f, _product: products[f.productId] }))
   } catch (e) { /* ignore */ }
 }
 
@@ -184,6 +203,26 @@ onMounted(load)
       </template>
     </div>
 
+    <!-- 我的收藏 -->
+    <div class="card">
+      <div class="head" @click="loadFavorites" style="cursor:pointer">
+        <h3>我的收藏 <span class="arrow">{{ showFavorites ? '▾' : '▸' }}</span></h3>
+      </div>
+      <template v-if="showFavorites">
+        <div v-if="!favoritedProducts.length" class="muted">暂无收藏</div>
+        <div v-else class="favList">
+          <div v-for="fav in favoritedProducts" :key="fav.id"
+            class="favItem" @click="router.push(`/products/${fav.productId}`)">
+            <div class="favCover" :style="fav._product.coverImageUrl ? { backgroundImage: `url(${fav._product.coverImageUrl})` } : {}" />
+            <div class="favInfo">
+              <span class="favTitle">{{ fav._product.title }}</span>
+              <span class="favPrice">¥{{ (fav._product.priceCent / 100).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
     <!-- 我的购买 -->
     <div class="card">
       <div class="head" @click="loadBought" style="cursor:pointer">
@@ -291,4 +330,18 @@ input {
 .orderStatus { font-size: 11px; color: rgba(0,0,0,0.45); }
 .orderInfo { display: flex; justify-content: space-between; margin-top: 3px; font-size: 12px; }
 .orderTime { color: rgba(0,0,0,0.35); }
+.favList { display: grid; gap: 6px; margin-top: 8px; }
+.favItem {
+  display: flex; gap: 10px; align-items: center;
+  padding: 8px 10px; border: 1px solid rgba(0,0,0,0.06); border-radius: 10px;
+  cursor: pointer; transition: background 0.12s;
+}
+.favItem:hover { background: rgba(0,0,0,0.02); }
+.favCover {
+  width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+  background-color: #f3f3f3; background-position: center; background-size: cover; background-repeat: no-repeat;
+}
+.favInfo { display: grid; gap: 2px; min-width: 0; }
+.favTitle { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.favPrice { font-size: 13px; font-weight: 600; }
 </style>

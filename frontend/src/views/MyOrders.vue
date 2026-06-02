@@ -96,16 +96,10 @@ function goOrder(item) {
 
 const filtered = computed(() => {
   return items.value.filter(i => {
-    // 已完成/已取消的订单不显示
     if (i.status === 'COMPLETED' || i.status === 'CANCELLED') return false
     if (i.status === 'REJECTED') return false
-    // ACCEPTED 的报价：检查关联订单是否已结束
-    if (i._type === 'offer' && i.status === 'ACCEPTED' && i.orderId) {
-      const linkedOrder = items.value.find(o => o._type === 'order' && o.id === i.orderId)
-      if (linkedOrder && (linkedOrder.status === 'COMPLETED' || linkedOrder.status === 'CANCELLED')) {
-        return false
-      }
-    }
+    // 已接受的报价：已被订单替代，直接隐藏
+    if (i._type === 'offer' && i.status === 'ACCEPTED') return false
     return true
   })
 })

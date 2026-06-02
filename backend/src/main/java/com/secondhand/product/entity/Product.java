@@ -36,6 +36,11 @@ public class Product {
     @Column(nullable = false, length = 16)
     private ProductStatus status;
 
+    /** 商品成色 */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_condition", length = 32)
+    private ProductCondition condition;
+
     @Column(name = "created_at") private LocalDateTime createdAt;
     @Column(name = "updated_at") private LocalDateTime updatedAt;
 
@@ -56,6 +61,8 @@ public class Product {
     public void setDescription(String d) { this.description = d; }
     public ProductStatus getStatus() { return status; }
     public void setStatus(ProductStatus s) { this.status = s; }
+    public ProductCondition getCondition() { return condition; }
+    public void setCondition(ProductCondition c) { this.condition = c; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime t) { this.createdAt = t; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

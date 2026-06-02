@@ -10,6 +10,7 @@ const priceYuan = ref('')
 const description = ref('')
 const quantity = ref(1)
 const categoryId = ref(null)
+const condition = ref(null)
 const categories = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -49,6 +50,7 @@ async function submit() {
         coverImageUrl: '',  // 不再需要填 URL，上传图片后自动设为封面
         description: description.value.trim(),
         categoryId: categoryId.value,
+        condition: condition.value,
       },
     })
     createdId.value = p.id
@@ -79,6 +81,17 @@ function done() {
       </label>
       <label>价格（元）<input v-model="priceYuan" type="number" step="0.01" min="0" placeholder="例如：1999.00" /></label>
       <label>库存数量 <input v-model.number="quantity" type="number" min="1" max="999" placeholder="默认 1" /></label>
+      <label>成色
+        <select v-model="condition" class="sel">
+          <option :value="null">请选择成色（可选）</option>
+          <option value="NEW">全新</option>
+          <option value="LIKE_NEW">99新</option>
+          <option value="NINE_TENTHS">9成新</option>
+          <option value="EIGHT_TENTHS">8成新</option>
+          <option value="SEVEN_TENTHS">7成新</option>
+          <option value="SIX_TENTHS_AND_BELOW">6成新及以下</option>
+        </select>
+      </label>
       <label>描述 <textarea v-model="description" rows="4" placeholder="描述商品成色、规格、配件等信息" /></label>
       <p v-if="error" class="error">{{ error }}</p>
       <button class="primary" :disabled="loading" @click="submit">

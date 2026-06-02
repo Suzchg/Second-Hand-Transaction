@@ -48,6 +48,9 @@ public class SecurityConfig {
                         // 商品分类和列表开放查看
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/*/comments").permitAll()
+                        // 卖家信息公开
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/public", "/api/users/*/products", "/api/users/*/sold", "/api/users/*/rating").permitAll()
                         // 省市区数据
                         .requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
                         // 物流轨迹开放查询
@@ -66,7 +69,8 @@ public class SecurityConfig {
     SecurityFilterChain defaultSecurity(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .csrf(csrf -> csrf.disable());
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         return http.build();
     }
 

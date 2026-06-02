@@ -14,6 +14,10 @@ function loadAccounts() {
 }
 
 function switchTo(acc) {
+  if (!acc.token) {
+    alert('该账号的登录已过期，请重新登录')
+    return
+  }
   localStorage.setItem('token', acc.token)
   localStorage.setItem('userId', String(acc.userId))
   localStorage.setItem('nickname', acc.nickname)

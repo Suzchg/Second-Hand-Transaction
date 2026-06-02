@@ -30,7 +30,37 @@ async function afterSale() {
 }
 async function loadTracking() { try { tracking.value = await api(`/api/shipments/${route.params.id}/track`) } catch (e) { alert(e.message) } }
 
-onMounted(load)
+// ---- 评分 ----
+const rating = ref(null)
+const ratingScore = ref(0)
+const ratingComment = ref('')
+const ratingSubmitting = ref(false)
+const ratingError = ref('')
+const ratingSuccess = ref(false)
+
+async function loadRating() {
+  try {
+    rating.value = await api(`/api/orders/${route.params.id}/rating`)
+  } catch { /* ignore */ }
+}
+
+async function submitRating() {
+  if (!ratingScore.value) { ratingError.value = '请选择评分'; return }
+  ratingSubmitting.value = true; ratingError.value = ''
+  try {
+    rating.value = await api(`/api/orders/${route.params.id}/rate`, {
+      method: 'POST',
+      body: { score: ratingScore.value, comment: ratingComment.value.trim() || null },
+    })
+    ratingSuccess.value = true
+  } catch (e) { ratingError.value = e.message }
+  finally { ratingSubmitting.value = false }
+}
+
+function hoverStar(n) { if (!rating.value) ratingScore.value = n }
+function setStar(n) { ratingScore.value = n }
+
+onMounted(() => { load(); loadRating() })
 </script>
 
 <template>
@@ -85,6 +115,36 @@ onMounted(load)
       <button v-if="detail.canApplyAfterSale" class="btn warn" @click="afterSale">申请售后</button>
     </div>
 
+    <!-- 评分 -->
+    <div v-if="detail.order.status === 'COMPLETED'" class="card">
+      <h3>评分</h3>
+      <template v-if="rating">
+        <div class="ratingDone">
+          <span class="starsDisplay">{{ '★'.repeat(rating.score) }}{{ '☆'.repeat(5 - rating.score) }}</span>
+          <span class="ratingScore">{{ rating.score }} 分</span>
+          <p v-if="rating.comment" class="ratingText">{{ rating.comment }}</p>
+        </div>
+      </template>
+      <template v-else-if="ratingSuccess">
+        <p class="okMsg">✅ 评分已提交</p>
+      </template>
+      <template v-else>
+        <div class="ratingForm">
+          <div class="starsRow">
+            <span v-for="n in 5" :key="n"
+              :class="['star', { on: n <= ratingScore }]"
+              @click="setStar(n)" @mouseenter="hoverStar(n)"
+            >{{ n <= ratingScore ? '★' : '☆' }}</span>
+          </div>
+          <textarea v-model="ratingComment" rows="2" placeholder="写点评价（选填）" />
+          <button class="btn primary sm" :disabled="ratingSubmitting" @click="submitRating">
+            {{ ratingSubmitting ? '提交中...' : '提交评分' }}
+          </button>
+          <p v-if="ratingError" class="error">{{ ratingError }}</p>
+        </div>
+      </template>
+    </div>
+
     <div v-if="detail.events?.length" class="card">
       <h3>状态时间线</h3>
       <div v-for="e in detail.events" :key="e.id" class="eventItem">
@@ -121,4 +181,20 @@ h3 { margin: 0 0 10px; font-size: 15px; }
 .eventNote { color: rgba(0,0,0,0.7); }
 .muted { color: rgba(0,0,0,0.45); }
 .error { color: #b00020; }
+.starsRow { display: flex; gap: 2px; margin-bottom: 8px; }
+.star { font-size: 28px; cursor: pointer; color: rgba(0,0,0,0.15); user-select: none; transition: color 0.1s; }
+.star.on { color: #f5a623; }
+.ratingDone { display: grid; gap: 4px; }
+.starsDisplay { font-size: 22px; color: #f5a623; letter-spacing: 2px; }
+.ratingScore { font-size: 14px; font-weight: 600; }
+.ratingText { margin: 0; font-size: 13px; color: rgba(0,0,0,0.6); }
+.ratingForm { display: grid; gap: 8px; }
+.ratingForm textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
+  padding: 8px 10px; outline: none; font-family: inherit; font-size: 13px;
+  resize: vertical;
+}
+.btn.sm { padding: 6px 12px; font-size: 12px; }
+.okMsg { color: #2e7d32; font-size: 14px; margin: 0; }
 </style>

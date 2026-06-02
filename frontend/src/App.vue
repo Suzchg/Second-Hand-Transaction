@@ -29,9 +29,20 @@ async function fetchUser() {
       identifier: localStorage.getItem('lastIdentifier') || '',
     })
   } catch {
-    isLoggedIn.value = !!localStorage.getItem('token')
-    isAdmin.value = localStorage.getItem('role') === 'ADMIN'
-    nickname.value = localStorage.getItem('nickname') || '用户'
+    // token 失效（过期、数据库重建等），清除登录态
+    localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('nickname')
+    localStorage.removeItem('role')
+    isLoggedIn.value = false
+    isAdmin.value = false
+    nickname.value = ''
+    // 将保存的账号 token 也清除
+    try {
+      const list = JSON.parse(localStorage.getItem('savedAccounts') || '[]')
+      list.forEach(a => { a.token = '' })
+      localStorage.setItem('savedAccounts', JSON.stringify(list))
+    } catch { /* ignore */ }
   }
 }
 
@@ -64,6 +75,7 @@ onMounted(() => {
         <template v-if="isLoggedIn">
           <button class="ghost" @click="router.push('/sell')">发布</button>
           <button class="ghost" @click="router.push('/my-products')">在售</button>
+          <button class="ghost" @click="router.push('/messages')">消息</button>
           <button class="ghost" @click="router.push('/my-orders')">订单</button>
           <button v-if="isAdmin" class="ghost adminBtn" @click="router.push('/admin')">管理</button>
           <button class="ghost" @click="router.push('/profile')">{{ nickname }}</button>

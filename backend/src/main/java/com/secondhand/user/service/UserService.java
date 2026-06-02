@@ -3,6 +3,7 @@ package com.secondhand.user.service;
 import com.secondhand.auth.entity.User;
 import com.secondhand.auth.repository.UserRepository;
 import com.secondhand.common.AppException;
+import com.secondhand.rating.repository.RatingRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,16 +20,30 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepo;
+    private final RatingRepository ratingRepo;
     private final Path uploadDir = Paths.get(System.getProperty("user.home"), ".secondhand", "uploads", "avatars");
 
-    public UserService(UserRepository userRepo) {
+    public UserService(UserRepository userRepo, RatingRepository ratingRepo) {
         this.userRepo = userRepo;
+        this.ratingRepo = ratingRepo;
         try {
             Files.createDirectories(uploadDir);
         } catch (IOException ignored) {}
     }
 
     public record ProfileDto(Long userId, String nickname, String phone, String email, String avatarUrl) {}
+    public record PublicUserDto(Long userId, String nickname, String avatarUrl,
+                                double averageRating, long ratingCount) {}
+
+    @Transactional(readOnly = true)
+    public PublicUserDto getPublicInfo(Long userId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new AppException("NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND));
+        double avg = ratingRepo.getAverageScoreBySellerId(userId);
+        long count = ratingRepo.getCountBySellerId(userId);
+        return new PublicUserDto(user.getId(), user.getNickname(), user.getAvatarUrl(),
+                Math.round(avg * 10.0) / 10.0, count);
+    }
 
     @Transactional(readOnly = true)
     public ProfileDto getProfile(Long userId) {

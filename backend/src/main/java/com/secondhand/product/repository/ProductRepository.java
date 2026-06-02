@@ -47,4 +47,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // ---- 卖家自己的商品 ----
 
     Page<Product> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
+
+    // ---- 某卖家在售商品（公开查看） ----
+
+    @Query("SELECT p FROM Product p WHERE p.status = :status AND p.quantity > 0 AND p.sellerId = :sellerId")
+    Page<Product> findByStatusAndQuantityGreaterThanAndSellerId(
+            @Param("status") ProductStatus status,
+            @Param("sellerId") Long sellerId,
+            Pageable pageable);
 }

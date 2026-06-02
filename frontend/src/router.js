@@ -5,7 +5,9 @@ const routes = [
   { path: '/', component: () => import('./views/Home.vue') },
   { path: '/products/:id', component: () => import('./views/ProductDetail.vue') },
   { path: '/sell', component: () => import('./views/Sell.vue') },
+  { path: '/seller/:id', component: () => import('./views/SellerProducts.vue') },
   { path: '/my-products', component: () => import('./views/MyProducts.vue') },
+  { path: '/messages', component: () => import('./views/Messages.vue') },
   { path: '/my-orders', component: () => import('./views/MyOrders.vue') },
   { path: '/switch-account', component: () => import('./views/SwitchAccount.vue') },
   { path: '/orders/:id', component: () => import('./views/Order.vue') },
@@ -23,6 +25,7 @@ const routes = [
       { path: 'users', component: () => import('./views/admin/AdminUsers.vue') },
       { path: 'products', component: () => import('./views/admin/AdminProducts.vue') },
       { path: 'orders', component: () => import('./views/admin/AdminOrders.vue') },
+      { path: 'reports', component: () => import('./views/admin/AdminReports.vue') },
     ],
   },
 ]

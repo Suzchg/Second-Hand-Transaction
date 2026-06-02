@@ -6,11 +6,14 @@ import com.secondhand.order.repository.*;
 import com.secondhand.product.entity.Product;
 import com.secondhand.product.entity.ProductStatus;
 import com.secondhand.product.service.ProductService;
+import com.secondhand.rating.entity.Rating;
+import com.secondhand.rating.repository.RatingRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,13 +23,16 @@ public class OrderService {
     private final OrderEventRepository orderEventRepo;
     private final ShipmentRepository shipmentRepo;
     private final ProductService productService;
+    private final RatingRepository ratingRepo;
 
     public OrderService(OrderRepository orderRepo, OrderEventRepository orderEventRepo,
-                        ShipmentRepository shipmentRepo, ProductService productService) {
+                        ShipmentRepository shipmentRepo, ProductService productService,
+                        RatingRepository ratingRepo) {
         this.orderRepo = orderRepo;
         this.orderEventRepo = orderEventRepo;
         this.shipmentRepo = shipmentRepo;
         this.productService = productService;
+        this.ratingRepo = ratingRepo;
     }
 
     public record CreateOrderCommand(long productId, String receiverName, String receiverPhone, String receiverAddress, Long addressId) {}
@@ -34,6 +40,35 @@ public class OrderService {
     public record OrderDetail(Order order, Shipment shipment, List<OrderEvent> events,
                               boolean canPay, boolean canShip, boolean canConfirm,
                               boolean canCancel, boolean canApplyAfterSale) {}
+
+    public record SoldProductDto(Long orderId, Long productId, String productTitle,
+                                 String productCover, Integer priceCent,
+                                 LocalDateTime completedAt, Integer ratingScore,
+                                 String ratingComment) {}
+
+    /** 卖家已售出的订单（已完成），含评分 */
+    @Transactional(readOnly = true)
+    public List<SoldProductDto> getSellerSoldProducts(Long sellerId) {
+        List<Order> completed = orderRepo.findBySellerIdAndStatusOrderByCreatedAtDesc(
+                sellerId, OrderStatus.COMPLETED, org.springframework.data.domain.Pageable.unpaged())
+                .getContent();
+        List<SoldProductDto> result = new ArrayList<>();
+        for (Order o : completed) {
+            Product p;
+            try { p = productService.getById(o.getProductId()); }
+            catch (Exception e) { continue; }
+
+            Rating rating = ratingRepo.findByOrderId(o.getId()).orElse(null);
+
+            result.add(new SoldProductDto(
+                    o.getId(), o.getProductId(), p.getTitle(), p.getCoverImageUrl(),
+                    o.getAmountCent(), o.getCompletedAt(),
+                    rating != null ? rating.getScore() : null,
+                    rating != null ? rating.getComment() : null
+            ));
+        }
+        return result;
+    }
 
     /** 以商品原价下单 */
     @Transactional

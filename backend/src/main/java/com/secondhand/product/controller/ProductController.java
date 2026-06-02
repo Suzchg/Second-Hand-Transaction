@@ -4,6 +4,7 @@ import com.secondhand.auth.security.AuthPrincipal;
 import com.secondhand.common.ApiResponse;
 import com.secondhand.product.category.service.CategoryService;
 import com.secondhand.product.entity.Product;
+import com.secondhand.product.entity.ProductCondition;
 import com.secondhand.product.entity.ProductStatus;
 import com.secondhand.product.service.ProductService;
 import jakarta.validation.Valid;
@@ -32,7 +33,7 @@ public class ProductController {
             @Valid @RequestBody CreateProductRequest req) {
         return ApiResponse.ok(productService.create(principal.userId(),
                 new ProductService.CreateCommand(req.title(), req.priceCent(), req.coverImageUrl(),
-                        req.description(), req.categoryId(), req.quantity())));
+                        req.description(), req.categoryId(), req.quantity(), req.condition())));
     }
 
     @PutMapping("/{id}")
@@ -42,7 +43,7 @@ public class ProductController {
             @Valid @RequestBody UpdateProductRequest req) {
         return ApiResponse.ok(productService.update(principal.userId(), productId,
                 new ProductService.UpdateCommand(req.title(), req.priceCent(), req.coverImageUrl(),
-                        req.description(), req.status(), req.categoryId())));
+                        req.description(), req.status(), req.categoryId(), req.condition())));
     }
 
     @GetMapping
@@ -77,7 +78,8 @@ public class ProductController {
             @Size(max = 512) String coverImageUrl,
             @NotBlank String description,
             Long categoryId,
-            @Min(1) Integer quantity) {}
+            @Min(1) Integer quantity,
+            ProductCondition condition) {}
 
     public record UpdateProductRequest(
             @Size(max = 100) String title,
@@ -85,5 +87,6 @@ public class ProductController {
             @Size(max = 512) String coverImageUrl,
             String description,
             ProductStatus status,
-            Long categoryId) {}
+            Long categoryId,
+            ProductCondition condition) {}
 }
