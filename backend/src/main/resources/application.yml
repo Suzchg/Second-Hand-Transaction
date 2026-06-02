@@ -1,0 +1,34 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: secondhand
+  datasource:
+    url: jdbc:h2:file:~/.secondhand/v2;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+springdoc:
+  swagger-ui:
+    path: /swagger
+
+app:
+  security:
+    jwt:
+      secret: secondhand-dev-secret-key-change-in-production-please
+      access-token-expiration-minutes: 120

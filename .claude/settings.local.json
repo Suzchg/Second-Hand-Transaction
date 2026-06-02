@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(npm -v)",
+      "Bash(tasklist *)"
+    ]
+  }
+}
