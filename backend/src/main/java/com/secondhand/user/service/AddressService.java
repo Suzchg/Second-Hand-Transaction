@@ -58,6 +58,7 @@ public class AddressService {
             }
             addr.setIsDefault(updated.getIsDefault());
         }
+        if (updated.getTag() != null) addr.setTag(updated.getTag());
         addr.setUpdatedAt(LocalDateTime.now());
         return addressRepo.save(addr);
     }

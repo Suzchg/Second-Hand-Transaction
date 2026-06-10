@@ -3,7 +3,18 @@
     "allow": [
       "Bash(java -version)",
       "Bash(npm -v)",
-      "Bash(tasklist *)"
+      "Bash(tasklist *)",
+      "Bash(node scripts/expand-regions.js)",
+      "Bash(\"D:/JAVA/IDK24/bin/java\" -jar -version)",
+      "Bash(where mysql *)",
+      "Read(//c/Program Files/MySQL/**)",
+      "Read(//d/mysql/**)",
+      "Bash(sc query *)",
+      "Bash(C:/Program Files/MySQL/MySQL Server 9.7/bin/mysql *)",
+      "Bash(netstat -ano)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(pip install *)"
     ]
   }
 }

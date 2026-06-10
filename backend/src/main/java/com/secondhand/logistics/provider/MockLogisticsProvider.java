@@ -1,5 +1,6 @@
 package com.secondhand.logistics.provider;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -7,9 +8,11 @@ import java.util.List;
 
 /**
  * Mock 物流查询实现。
+ * 仅在未启用快递100时生效。
  * 返回模拟的四段式物流轨迹。
  */
 @Component
+@ConditionalOnProperty(name = "logistics.kuaidi100.enabled", havingValue = "false", matchIfMissing = true)
 public class MockLogisticsProvider implements LogisticsProvider {
 
     @Override

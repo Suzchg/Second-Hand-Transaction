@@ -9,11 +9,15 @@ const routes = [
   { path: '/my-products', component: () => import('./views/MyProducts.vue') },
   { path: '/messages', component: () => import('./views/Messages.vue') },
   { path: '/my-orders', component: () => import('./views/MyOrders.vue') },
+  { path: '/my-after-sales', component: () => import('./views/MyAfterSales.vue') },
+  { path: '/my-favorites', component: () => import('./views/MyFavorites.vue') },
   { path: '/switch-account', component: () => import('./views/SwitchAccount.vue') },
   { path: '/orders/:id', component: () => import('./views/Order.vue') },
   { path: '/profile', component: () => import('./views/Profile.vue') },
   { path: '/profile/address/new', component: () => import('./views/AddressForm.vue') },
   { path: '/profile/address/:id/edit', component: () => import('./views/AddressForm.vue') },
+  { path: '/policy/after-sale', component: () => import('./views/AfterSalePolicy.vue') },
+  { path: '/policy/privacy', component: () => import('./views/PrivacyPolicy.vue') },
   // Admin routes
   {
     path: '/admin',
@@ -26,6 +30,7 @@ const routes = [
       { path: 'products', component: () => import('./views/admin/AdminProducts.vue') },
       { path: 'orders', component: () => import('./views/admin/AdminOrders.vue') },
       { path: 'reports', component: () => import('./views/admin/AdminReports.vue') },
+      { path: 'after-sale', component: () => import('./views/admin/AdminAfterSale.vue') },
     ],
   },
 ]

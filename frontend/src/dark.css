@@ -1,0 +1,217 @@
+/* ==========================================
+   SecondHand — 清新蓝绿深色模式
+   触发条件：<html data-theme="dark">
+   也兼容系统偏好 @media (prefers-color-scheme: dark)
+   当用户没有手动设置时跟随系统
+   ========================================== */
+
+/* ---- 手动切换（优先级最高）---- */
+[data-theme="dark"] {
+  /* 品牌色在暗色下保持亮度 */
+  --brand: #0EB5A6;
+  --brand-hover: #0DC0B0;
+  --brand-dark: #0DC0B0;
+  --brand-darker: #14D4C0;
+  --brand-light: #0a2020;
+  --brand-gradient: linear-gradient(135deg, #0EB5A6 0%, #00C9A7 100%);
+  --brand-gradient-soft: linear-gradient(135deg, #0a2020 0%, #0a1a18 100%);
+
+  --accent: #F56C6C;
+  --accent-light: #2a0a0a;
+
+  /* 功能色暗色适配 */
+  --success: #4ade80;
+  --success-bg: #0a2e0a;
+  --success-border: #14522a;
+  --error: #f87171;
+  --error-bg: #2e0a0a;
+  --error-border: #521414;
+  --info: #60a5fa;
+  --info-bg: #0a1a2e;
+  --info-border: #142852;
+  --warning: #fbbf24;
+  --warning-bg: #2e1a0a;
+  --warning-border: #523214;
+
+  /* 中性色暗色适配 */
+  --text-primary: #e8e6e3;
+  --text-secondary: #a8a6a3;
+  --text-tertiary: #6b6967;
+  --text-disabled: #4a4846;
+  --text-inverse: #1a1a1a;
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #141414;
+  --bg-tertiary: #1e1e1e;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.06);
+  --border-light: #2a2a2a;
+  --border-default: #333333;
+  --border-strong: #444444;
+
+  /* 阴影暗色适配 */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-brand: 0 4px 16px rgba(14, 181, 166, 0.25);
+  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+/* ---- 系统偏好（低优先级，手动设置覆盖）---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand: #FFD000;
+    --brand-hover: #FFC107;
+    --brand-dark: #FFB800;
+    --brand-darker: #F5A623;
+    --brand-light: #2a2200;
+    --brand-gradient: linear-gradient(135deg, #FFD000 0%, #FF8C00 100%);
+    --brand-gradient-soft: linear-gradient(135deg, #2a2200 0%, #2a1a00 100%);
+
+    --accent: #FF8C00;
+    --accent-light: #2a1a00;
+
+    --success: #4ade80;
+    --success-bg: #0a2e0a;
+    --success-border: #14522a;
+    --error: #f87171;
+    --error-bg: #2e0a0a;
+    --error-border: #521414;
+    --info: #60a5fa;
+    --info-bg: #0a1a2e;
+    --info-border: #142852;
+    --warning: #fbbf24;
+    --warning-bg: #2e1a0a;
+    --warning-border: #523214;
+
+    --text-primary: #e8e6e3;
+    --text-secondary: #a8a6a3;
+    --text-tertiary: #6b6967;
+    --text-disabled: #4a4846;
+    --text-inverse: #1a1a1a;
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #141414;
+    --bg-tertiary: #1e1e1e;
+    --bg-hover: rgba(255, 255, 255, 0.04);
+    --bg-active: rgba(255, 255, 255, 0.06);
+    --border-light: #2a2a2a;
+    --border-default: #333333;
+    --border-strong: #444444;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+    --shadow-brand: 0 4px 16px rgba(14, 181, 166, 0.25);
+    --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+    color-scheme: dark;
+  }
+}
+
+/* ---- 暗色模式下的特定组件微调 ---- */
+
+[data-theme="dark"] body {
+  background: var(--bg-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background: var(--bg-secondary);
+  }
+}
+
+/* 搜索框暗色聚焦 */
+[data-theme="dark"] .searchArea:focus-within {
+  box-shadow: 0 0 0 3px rgba(14, 181, 166, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .searchArea:focus-within {
+    box-shadow: 0 0 0 3px rgba(14, 181, 166, 0.2);
+  }
+}
+
+/* 输入框暗色焦点环 */
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  box-shadow: 0 0 0 3px rgba(14, 181, 166, 0.15) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input:focus,
+  :root:not([data-theme="light"]) textarea:focus,
+  :root:not([data-theme="light"]) select:focus {
+    box-shadow: 0 0 0 3px rgba(14, 181, 166, 0.15) !important;
+  }
+}
+
+/* 聊天气泡暗色 */
+[data-theme="dark"] .bubble.theirs {
+  background: var(--bg-primary);
+  border-color: var(--border-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .bubble.theirs {
+    background: var(--bg-primary);
+    border-color: var(--border-light);
+  }
+}
+
+/* 弹窗背景 */
+[data-theme="dark"] .modalOverlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .modalOverlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* 骨架屏暗色调整 */
+[data-theme="dark"] .skLine,
+[data-theme="dark"] .skImage,
+[data-theme="dark"] .skCircle {
+  background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+  background-size: 200% 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .skLine,
+  :root:not([data-theme="light"]) .skImage,
+  :root:not([data-theme="light"]) .skCircle {
+    background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+    background-size: 200% 100%;
+  }
+}
+
+/* 滚动条暗色 */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) ::-webkit-scrollbar-thumb {
+    background: #333;
+  }
+}
+
+/* 选择框暗色 */
+[data-theme="dark"] input[type="checkbox"],
+[data-theme="dark"] input[type="radio"] {
+  accent-color: var(--brand-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input[type="checkbox"],
+  :root:not([data-theme="light"]) input[type="radio"] {
+    accent-color: var(--brand-dark);
+  }
+}

@@ -71,9 +71,9 @@ public class AuthService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 创建用户
+        // 创建用户（先保存获取 ID，再用 ID 生成唯一昵称）
         User user = new User();
-        user.setNickname("新用户");
+        user.setNickname("新用户"); // 临时昵称，save 后会用 ID 替换
         user.setPasswordHash(passwordEncoder.encode(req.password()));
         user.setStatus(UserStatus.ACTIVE);
         // 同步 phone/email 到 User 实体
@@ -90,6 +90,10 @@ public class AuthService {
         user.setUpdatedAt(now);
         user = userRepo.save(user);
 
+        // 根据用户 ID 生成唯一昵称：用户111111, 用户111112, ...
+        user.setNickname("用户" + (111110 + user.getId()));
+        userRepo.save(user);
+
         // 创建登录标识
         UserIdentity identity = new UserIdentity();
         identity.setUser(user);
@@ -102,7 +106,7 @@ public class AuthService {
 
         String token = jwtService.createAccessToken(user.getId(), user.getRole().name());
         onlineUserTracker.heartbeat(user.getId());
-        return new AuthResponse(token, user.getId(), user.getNickname(), user.getRole().name());
+        return new AuthResponse(token, user.getId(), user.getNickname(), user.getRole().name(), user.getAvatarUrl());
     }
 
     /**
@@ -135,7 +139,7 @@ public class AuthService {
 
         String token = jwtService.createAccessToken(user.getId(), user.getRole().name());
         onlineUserTracker.heartbeat(user.getId());
-        return new AuthResponse(token, user.getId(), user.getNickname(), user.getRole().name());
+        return new AuthResponse(token, user.getId(), user.getNickname(), user.getRole().name(), user.getAvatarUrl());
     }
 
     /**
@@ -163,7 +167,7 @@ public class AuthService {
     public AuthResponse getUserInfo(long userId) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new AppException("NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND));
-        return new AuthResponse(null, user.getId(), user.getNickname(), user.getRole().name());
+        return new AuthResponse(null, user.getId(), user.getNickname(), user.getRole().name(), user.getAvatarUrl());
     }
 
     /**

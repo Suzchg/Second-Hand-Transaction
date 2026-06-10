@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api } from '../api.js'
+import ImageUploader from '../components/ImageUploader.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -8,9 +9,11 @@ const items = ref([])
 
 // ---- Edit modal ----
 const editing = ref(null)
-const editForm = ref({ title: '', priceYuan: '', description: '', quantity: 1 })
+const editForm = ref({ title: '', priceYuan: '', description: '', quantity: 1, categoryId: null, condition: null, freeShipping: false, shippingFeeYuan: '' })
 const editError = ref('')
 const editSaving = ref(false)
+const categories = ref([])
+const editingProductId = ref(null)
 
 function statusInfo(p) {
   if (p.status === 'ON_SALE') return { label: '在售', cls: 'ON_SALE' }
@@ -21,7 +24,6 @@ async function load() {
   loading.value = true; error.value = ''
   try {
     const page = await api('/api/my-products?page=0&size=50')
-    // 只保留有库存的（售罄的移到已售出）
     items.value = (page.content || []).filter(p => p.quantity && p.quantity > 0)
   } catch (e) {
     error.value = e.message || '加载失败'
@@ -49,18 +51,27 @@ async function onShelf(p) {
   } catch (e) { alert(e.message || '操作失败') }
 }
 
-function openEdit(p) {
+async function openEdit(p) {
   editing.value = p.id
+  editingProductId.value = p.id
   editForm.value = {
     title: p.title,
     priceYuan: (p.priceCent / 100).toFixed(2),
     description: p.description || '',
     quantity: p.quantity || 1,
+    categoryId: p.categoryId,
+    condition: p.condition,
+    freeShipping: p.freeShipping || false,
+    shippingFeeYuan: ((p.shippingFeeCent || 0) / 100).toFixed(2),
   }
   editError.value = ''
+  if (categories.value.length === 0) {
+    try { categories.value = await api('/api/categories', { auth: false }) || [] }
+    catch { /* ignore */ }
+  }
 }
 
-function cancelEdit() { editing.value = null }
+function cancelEdit() { editing.value = null; editingProductId.value = null }
 
 async function saveEdit(p) {
   editError.value = ''
@@ -76,9 +87,14 @@ async function saveEdit(p) {
         priceCent,
         description: editForm.value.description.trim(),
         quantity: editForm.value.quantity,
+        categoryId: editForm.value.categoryId,
+        condition: editForm.value.condition,
+        freeShipping: editForm.value.freeShipping === true,
+        shippingFeeCent: editForm.value.freeShipping ? 0 : Math.round(Number(editForm.value.shippingFeeYuan || '0') * 100),
       },
     })
     editing.value = null
+    editingProductId.value = null
     await load()
   } catch (e) {
     editError.value = e.message || '保存失败'
@@ -91,118 +107,297 @@ onMounted(load)
 </script>
 
 <template>
-  <div>
-    <div class="head">
-      <h2>在售</h2>
-      <button class="ghost" @click="load">刷新</button>
+  <div class="page">
+    <div class="pageHead">
+      <h2><AppIcon name="package" :size="20"/> 我在售的</h2>
+      <button class="refreshBtn" @click="load">刷新</button>
     </div>
 
     <p v-if="loading" class="muted">加载中...</p>
-    <p v-else-if="error" class="error">{{ error }}</p>
+    <p v-else-if="error" class="errMsg">{{ error }}</p>
 
-    <table v-else-if="items.length" class="table">
-      <thead>
-        <tr>
-          <th>商品</th>
-          <th>价格</th>
-          <th>库存</th>
-          <th>状态</th>
-          <th>在售天数</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="p in items" :key="p.id">
-          <td>
-            <router-link :to="`/products/${p.id}`" class="title">{{ p.title }}</router-link>
-          </td>
-          <td class="price">¥{{ (p.priceCent / 100).toFixed(2) }}</td>
-          <td class="qty">{{ p.quantity ?? 0 }}</td>
-          <td>
-            <span :class="['tag', statusInfo(p).cls]">{{ statusInfo(p).label }}</span>
-          </td>
-          <td class="days">{{ daysOnSale(p.createdAt) }} 天</td>
-          <td class="actions">
-            <button class="link" @click="openEdit(p)">编辑</button>
-            <button v-if="p.status === 'ON_SALE'" class="link" @click="offShelf(p)">下架</button>
-            <button v-else class="link" @click="onShelf(p)">上架</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-else-if="items.length" class="productGrid">
+      <div v-for="p in items" :key="p.id" class="productCard">
+        <!-- 封面图 -->
+        <div
+          class="cardCover"
+          v-lazy-bg="p.coverImageUrl || ''"
+          @click="$router.push(`/products/${p.id}`)"
+        >
+          <span v-if="!p.coverImageUrl" class="coverFallback"><AppIcon name="image" :size="36"/></span>
+        </div>
 
-    <p v-else class="muted">暂无商品，<router-link to="/sell">去发布</router-link></p>
-
-    <!-- Edit overlay -->
-    <div v-if="editing" class="overlay" @click.self="cancelEdit">
-      <div class="modal">
-        <h3>编辑商品</h3>
-        <label>标题 <input v-model="editForm.title" /></label>
-        <label>价格（元）<input v-model="editForm.priceYuan" type="number" step="0.01" min="0" /></label>
-        <label>库存 <input v-model.number="editForm.quantity" type="number" min="1" max="999" /></label>
-        <label>描述 <textarea v-model="editForm.description" rows="3" /></label>
-        <p v-if="editError" class="error">{{ editError }}</p>
-        <div class="modalActions">
-          <button class="primary" :disabled="editSaving" @click="saveEdit(items.find(i => i.id === editing))">
-            {{ editSaving ? '保存中...' : '保存' }}
-          </button>
-          <button class="ghost" @click="cancelEdit">取消</button>
+        <!-- 信息 -->
+        <div class="cardInfo">
+          <router-link :to="`/products/${p.id}`" class="cardTitle">{{ p.title }}</router-link>
+          <div class="cardMeta">
+            <span class="cardPrice">¥{{ (p.priceCent / 100).toFixed(2) }}</span>
+            <span class="cardQty">库存 {{ p.quantity ?? 0 }}</span>
+            <span :class="['stockTag', statusInfo(p).cls]">{{ statusInfo(p).label }}</span>
+          </div>
+          <div class="cardFooter">
+            <span class="cardDays">在售 {{ daysOnSale(p.createdAt) }} 天</span>
+            <span class="cardActions">
+              <button class="cardLink" @click="openEdit(p)">编辑</button>
+              <button v-if="p.status === 'ON_SALE'" class="cardLink" @click="offShelf(p)">下架</button>
+              <button v-else class="cardLink" @click="onShelf(p)">上架</button>
+            </span>
+          </div>
         </div>
       </div>
     </div>
+
+    <p v-else class="emptyState">暂无商品，<router-link to="/sell">去发布</router-link></p>
+
+    <!-- 编辑弹窗 -->
+    <Teleport to="body">
+      <div v-if="editing" class="modalOverlay" @click.self="cancelEdit">
+        <div class="modalCard">
+          <h3>编辑商品</h3>
+          <div class="modalForm">
+            <label>标题 <input v-model="editForm.title" /></label>
+            <label>分类
+              <select v-model="editForm.categoryId" class="selInput">
+                <option :value="null">请选择分类（可选）</option>
+                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.iconUrl }} {{ c.name }}</option>
+              </select>
+            </label>
+            <div class="formRow">
+              <label>价格（元）<input v-model="editForm.priceYuan" type="number" step="0.01" min="0" /></label>
+              <label>库存 <input v-model.number="editForm.quantity" type="number" min="1" max="999" /></label>
+            </div>
+            <label>成色
+              <select v-model="editForm.condition" class="selInput">
+                <option :value="null">请选择成色（可选）</option>
+                <option value="NEW">全新</option>
+                <option value="LIKE_NEW">99新</option>
+                <option value="NINE_TENTHS">9成新</option>
+                <option value="EIGHT_TENTHS">8成新</option>
+                <option value="SEVEN_TENTHS">7成新</option>
+                <option value="SIX_TENTHS_AND_BELOW">6成新及以下</option>
+              </select>
+            </label>
+            <label>描述 <textarea v-model="editForm.description" rows="3" /></label>
+            <label class="checkLabel">
+              <input type="checkbox" v-model="editForm.freeShipping" />
+              <span>包邮（免邮费）</span>
+            </label>
+            <label v-if="!editForm.freeShipping">邮费（元）<input v-model="editForm.shippingFeeYuan" type="number" step="1" min="0" /></label>
+            <div class="imageSection">
+              <span class="imageLabel">商品图片</span>
+              <ImageUploader :productId="editingProductId" />
+            </div>
+          </div>
+          <p v-if="editError" class="fieldErr">{{ editError }}</p>
+          <div class="modalActions">
+            <button class="btnPrimary" :disabled="editSaving" @click="saveEdit(items.find(i => i.id === editing))">
+              {{ editSaving ? '保存中...' : '保存' }}
+            </button>
+            <button class="btnGhost" @click="cancelEdit">取消</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-h2 { margin: 0; font-size: 20px; }
-.ghost {
-  border: 1px solid rgba(0,0,0,0.12); background: white;
-  padding: 6px 10px; border-radius: 10px; cursor: pointer;
-}
-.table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); font-weight: 500; font-size: 12px; }
-td { padding: 10px 8px; border-bottom: 1px solid rgba(0,0,0,0.04); }
-.title { font-weight: 500; color: rgba(0,0,0,0.85); text-decoration: none; }
-.title:hover { color: #1565c0; text-decoration: underline; }
-.price { font-weight: 600; }
-.qty { color: rgba(0,0,0,0.5); font-size: 13px; }
-.days { color: rgba(0,0,0,0.5); font-size: 13px; }
-.actions { display: flex; gap: 8px; align-items: center; }
-.tag {
-  display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500;
-}
-.tag.ON_SALE { background: #e8f5e9; color: #2e7d32; }
-.tag.OFF_SALE { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.5); }
-.tag.SOLD_OUT { background: #fce4ec; color: #b00020; }
-.link {
-  background: none; border: 0; color: rgba(0,0,0,0.55); cursor: pointer; font-size: 13px; padding: 0;
-}
-.link:hover { color: rgba(0,0,0,0.8); }
+.page { max-width: 680px; margin: 0 auto; }
 
-/* Modal */
-.overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.35);
-  display: flex; align-items: center; justify-content: center; z-index: 50;
+.pageHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
+
+h2 { margin: 0; font-size: 20px; font-weight: 700; }
+
+.refreshBtn {
+  border: 1px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
-.modal {
-  background: white; border-radius: 18px; padding: 22px;
-  width: 100%; max-width: 420px;
-  display: grid; gap: 12px;
+
+.refreshBtn:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+
+/* 商品网格 */
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
 }
-.modal h3 { margin: 0; font-size: 18px; }
-.modal label { display: grid; gap: 4px; font-size: 13px; color: rgba(0,0,0,0.7); }
-.modal input, .modal textarea {
-  border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
-  padding: 8px 10px; outline: none; font-size: 14px; font-family: inherit;
+
+@media (min-width: 760px) { .productGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.productCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-normal);
 }
-.modal textarea { resize: vertical; min-height: 60px; }
-.modalActions { display: flex; gap: 8px; }
-.primary {
-  border: 0; background: black; color: white;
-  padding: 10px 14px; border-radius: 12px; cursor: pointer;
+
+.productCard:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.cardCover {
+  height: 160px;
+  background-color: var(--bg-secondary);
+  background-position: center;
+  background-size: cover;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.muted { color: rgba(0,0,0,0.45); font-size: 13px; }
-.error { color: #b00020; font-size: 13px; margin: 0; }
+
+.coverFallback { display: flex; align-items: center; justify-content: center; opacity: 0.3; }
+
+.cardInfo { padding: var(--space-md); display: grid; gap: var(--space-sm); }
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardTitle:hover { color: var(--brand-darker); }
+
+.cardMeta { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+
+.cardPrice { font-weight: 700; font-size: 15px; color: var(--accent); }
+
+.cardQty { font-size: 11px; color: var(--text-tertiary); }
+
+.stockTag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.stockTag.ON_SALE { background: var(--success-bg); color: var(--success); }
+.stockTag.OFF_SALE { background: var(--bg-secondary); color: var(--text-tertiary); }
+
+.cardFooter { display: flex; justify-content: space-between; align-items: center; }
+
+.cardDays { font-size: 11px; color: var(--text-disabled); }
+
+.cardActions { display: flex; gap: var(--space-sm); }
+
+.cardLink {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.cardLink:hover { color: var(--text-primary); }
+
+.muted { color: var(--text-tertiary); font-size: 13px; }
+.errMsg { color: var(--error); font-size: 13px; }
+
+.emptyState { text-align: center; padding: 40px; color: var(--text-tertiary); font-size: 13px; }
+.emptyState a { color: var(--brand-darker); }
+
+/* 弹窗 */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  animation: fadeIn 0.2s ease;
+}
+
+.modalCard {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  animation: scaleIn 0.25s ease;
+}
+
+.modalCard h3 { margin: 0; font-size: 18px; }
+
+.modalForm { display: grid; gap: var(--space-md); margin-top: var(--space-lg); }
+
+.modalForm label {
+  display: grid;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.modalForm input, .modalForm textarea, .selInput {
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg-tertiary);
+}
+
+.modalForm textarea { resize: vertical; min-height: 60px; }
+
+.selInput { background: var(--bg-tertiary); cursor: pointer; }
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: var(--space-md);
+}
+
+.checkLabel { display: flex !important; align-items: center; gap: var(--space-sm) !important; cursor: pointer; }
+.checkLabel input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--brand-dark); }
+
+.imageSection { display: grid; gap: var(--space-xs); }
+.imageLabel { font-size: 13px; color: var(--text-secondary); }
+
+.fieldErr { color: var(--error); font-size: 13px; margin: 0; }
+
+.modalActions { display: flex; gap: var(--space-sm); margin-top: var(--space-lg); }
+
+.btnPrimary {
+  flex: 1;
+  border: none;
+  background: var(--brand-gradient);
+  color: white;
+  padding: 11px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+}
+
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btnGhost {
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 11px 20px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.btnGhost:hover { border-color: var(--border-strong); }
 </style>

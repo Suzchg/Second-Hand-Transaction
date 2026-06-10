@@ -7,5 +7,6 @@ public record AuthResponse(
         String accessToken,
         long userId,
         String nickname,
-        String role
+        String role,
+        String avatarUrl
 ) {}

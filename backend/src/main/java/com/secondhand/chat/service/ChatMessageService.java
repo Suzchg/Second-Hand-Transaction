@@ -2,9 +2,11 @@ package com.secondhand.chat.service;
 
 import com.secondhand.chat.entity.ChatMessage;
 import com.secondhand.chat.repository.ChatMessageRepository;
+import com.secondhand.common.AppException;
 import com.secondhand.product.entity.Product;
 import com.secondhand.product.service.ProductService;
 import com.secondhand.user.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,9 @@ public class ChatMessageService {
 
     @Transactional
     public ChatMessage send(Long productId, Long senderId, Long receiverId, String content) {
+        if (senderId.equals(receiverId)) {
+            throw new AppException("FORBIDDEN", "不能给自己发消息", HttpStatus.FORBIDDEN);
+        }
         ChatMessage msg = new ChatMessage();
         msg.setProductId(productId);
         msg.setSenderId(senderId);
@@ -47,13 +52,16 @@ public class ChatMessageService {
         return chatRepo.findConversation(productId, userId1, userId2);
     }
 
-    /** 获取对话摘要列表（消息中心用） */
+    /** 获取对话摘要列表（消息中心用）。按 (productId, otherUserId) 分组，每个买家独立一条对话 */
     @Transactional(readOnly = true)
     public List<ConversationSummary> getConversationList(Long userId) {
-        List<Long> productIds = chatRepo.findDistinctProductIdsByUserId(userId);
+        List<Object[]> pairs = chatRepo.findDistinctConversationPairs(userId);
         List<ConversationSummary> result = new ArrayList<>();
 
-        for (Long productId : productIds) {
+        for (Object[] pair : pairs) {
+            Long productId = (Long) pair[0];
+            Long otherUserId = (Long) pair[1];
+
             Product product;
             try {
                 product = productService.getById(productId);
@@ -61,34 +69,20 @@ public class ChatMessageService {
                 continue; // 商品可能已被删除
             }
 
-            // 确定对话对方
-            Long otherUserId = product.getSellerId().equals(userId)
-                    ? null : product.getSellerId();
-            // 如果是卖家，取第一个买家
-            if (otherUserId == null) {
-                List<ChatMessage> msgs = chatRepo.findLatestByProductAndUser(productId, userId);
-                if (!msgs.isEmpty()) {
-                    ChatMessage first = msgs.get(msgs.size() - 1); // oldest
-                    otherUserId = first.getSenderId().equals(userId)
-                            ? first.getReceiverId() : first.getSenderId();
-                }
-            }
-
-            // 最后一条消息
-            List<ChatMessage> latest = chatRepo.findLatestByProductAndUser(productId, userId);
-            ChatMessage lastMsg = latest.isEmpty() ? null : latest.get(0);
+            // 获取两人之间在该商品下的所有消息
+            List<ChatMessage> msgs = chatRepo.findConversation(productId, userId, otherUserId);
+            ChatMessage lastMsg = msgs.isEmpty() ? null : msgs.get(msgs.size() - 1);
 
             // 未读数
-            long unread = latest.stream()
+            long unread = msgs.stream()
                     .filter(m -> m.getReceiverId().equals(userId) && !m.getIsRead())
                     .count();
 
+            // 对方用户信息
             UserService.PublicUserDto otherUser = null;
-            if (otherUserId != null) {
-                try {
-                    otherUser = userService.getPublicInfo(otherUserId);
-                } catch (Exception ignored) {}
-            }
+            try {
+                otherUser = userService.getPublicInfo(otherUserId);
+            } catch (Exception ignored) {}
 
             result.add(new ConversationSummary(
                     productId, product.getTitle(),

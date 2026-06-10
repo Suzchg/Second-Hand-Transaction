@@ -14,7 +14,7 @@ const seller = ref(null)
 const pid = ref(Number(route.params.id))
 const showAddressPicker = ref(false)
 
-// ---- 砍价相关 ----
+// ---- 砍价 ----
 const showOfferModal = ref(false)
 const offerPriceYuan = ref('')
 const offerMessage = ref('')
@@ -60,7 +60,6 @@ async function load() {
   loading.value = true; error.value = ''
   try {
     p.value = await api(`/api/products/${route.params.id}`)
-    // 获取卖家公开信息
     if (p.value?.sellerId) {
       try { seller.value = await api(`/api/users/${p.value.sellerId}/public`, { auth: false }) }
       catch { /* ignore */ }
@@ -81,7 +80,6 @@ async function loadComments() {
   try {
     const list = await api(`/api/products/${pid.value}/comments`, { auth: false })
     comments.value = list || []
-    // 批量获取评论者昵称
     const ids = [...new Set(comments.value.map(c => c.userId).filter(Boolean))]
     await Promise.all(ids.map(async id => {
       try {
@@ -204,53 +202,108 @@ onMounted(() => { load(); loadComments(); checkFavorite() })
 </script>
 
 <template>
-  <button class="back" @click="$router.back()">返回</button>
-  <p v-if="loading" class="muted">加载中...</p>
-  <p v-else-if="error" class="error">{{ error }}</p>
+  <div class="page">
+    <!-- 返回按钮 -->
+    <button class="backBtn" @click="$router.back()">← 返回</button>
 
-  <div v-else class="wrap">
-    <ImageGallery :productId="pid" />
-    <div class="meta">
-      <div class="title">{{ p.title }}</div>
-      <span v-if="p.condition" class="condTag">{{ conditionLabel(p.condition) }}</span>
-      <div class="price">¥{{ (p.priceCent / 100).toFixed(2) }}</div>
-    </div>
-    <div class="desc">
-      <div class="h3">描述</div>
-      <div class="text">{{ p.description }}</div>
-    </div>
-
-    <!-- 卖家信息 -->
-    <div v-if="seller" class="sellerRow" @click="router.push(`/seller/${seller.userId}`)">
-      <div class="sellerAvatar" :style="seller.avatarUrl ? { backgroundImage: `url(${seller.avatarUrl})` } : {}">
-        <span v-if="!seller.avatarUrl">{{ (seller.nickname || '?')[0] }}</span>
+    <!-- 加载与错误 -->
+    <div v-if="loading" class="loadingState">
+      <div class="skeletonDetail">
+        <div class="skImage" />
+        <div class="skInfo">
+          <div class="skLine w60" />
+          <div class="skLine w30" />
+          <div class="skLine w80" />
+        </div>
       </div>
-      <div class="sellerMeta">
-        <span class="sellerName">{{ seller.nickname }}</span>
-        <span class="sellerStars" v-if="seller.ratingCount > 0">
-          {{ '★'.repeat(Math.round(seller.averageRating)) }} {{ seller.averageRating }} ({{ seller.ratingCount }}评)
-        </span>
-        <span class="sellerHint">查看在售商品 →</span>
+    </div>
+    <div v-else-if="error" class="errorState">
+      <span class="errorIcon"><AppIcon name="alert-triangle" :size="48"/></span>
+      <p>{{ error }}</p>
+    </div>
+
+    <!-- 主体内容 -->
+    <div v-else class="detailLayout">
+      <!-- 左：图片 -->
+      <div class="detailLeft">
+        <ImageGallery :productId="pid" />
+      </div>
+
+      <!-- 右：信息 -->
+      <div class="detailRight">
+        <!-- 标题 -->
+        <h1 class="productTitle">{{ p.title }}</h1>
+
+        <!-- 标签 -->
+        <div class="tagRow">
+          <span v-if="p.condition" class="condTag">{{ conditionLabel(p.condition) }}</span>
+          <span v-if="p.freeShipping" class="shipTag free"><AppIcon name="truck" :size="14"/> 包邮</span>
+          <span v-else-if="p.shippingFeeCent > 0" class="shipTag paid">运费 ¥{{ (p.shippingFeeCent / 100).toFixed(2) }}</span>
+        </div>
+
+        <!-- 价格 -->
+        <div class="priceRow">
+          <span class="priceSymbol">¥</span>
+          <span class="priceValue">{{ (p.priceCent / 100).toFixed(2) }}</span>
+        </div>
+
+        <!-- 卖家信息卡片 -->
+        <div v-if="seller" class="sellerCard" @click="router.push(`/seller/${seller.userId}`)">
+          <div class="sellerAvatar" :style="seller.avatarUrl ? { backgroundImage: `url(${seller.avatarUrl})` } : {}">
+            <span v-if="!seller.avatarUrl">{{ (seller.nickname || '?')[0] }}</span>
+          </div>
+          <div class="sellerInfo">
+            <div class="sellerName">{{ seller.nickname }}</div>
+            <div class="sellerStats">
+              <span v-if="seller.ratingCount > 0" class="sellerStars">
+                {{ '★'.repeat(Math.round(seller.averageRating)) }} {{ seller.averageRating }}
+              </span>
+              <span class="sellerCount">({{ seller.ratingCount || 0 }} 评价)</span>
+            </div>
+          </div>
+          <span class="sellerArrow">查看主页 ›</span>
+        </div>
+
+        <!-- 描述 -->
+        <div class="descCard">
+          <h3 class="descTitle"><AppIcon name="file-text" :size="16"/> 商品描述</h3>
+          <p class="descContent">{{ p.description }}</p>
+        </div>
+
+        <!-- 操作按钮区 -->
+        <div v-if="isLoggedIn && !isOwner && p.status === 'ON_SALE'" class="actionBar">
+          <button class="btnPrimary" @click="buy">立即购买</button>
+          <button class="btnOffer" @click="openOffer"><AppIcon name="dollar" :size="16"/> 砍价</button>
+          <button class="btnFav" :class="{ favorited: isFavorited }" :disabled="favoriteToggling" @click="toggleFavorite">
+            <AppIcon name="heart" :size="16" :active="isFavorited"/>
+            {{ isFavorited ? '已收藏' : '收藏' }}
+          </button>
+          <button class="btnChat" @click="router.push('/messages?product=' + pid)"><AppIcon name="message-square" :size="16"/> 私聊</button>
+          <button class="btnReport" @click="openReport">举报</button>
+        </div>
       </div>
     </div>
 
     <!-- 评论区 -->
-    <div class="commentsSection">
-      <div class="h3">评论 ({{ comments.length }})</div>
+    <div v-if="!loading && !error" class="commentsCard">
+      <h3 class="commentsTitle"><AppIcon name="chat" :size="16"/> 评论 ({{ comments.length }})</h3>
+
       <!-- 评论输入 -->
-      <div v-if="isLoggedIn" class="commentInput">
+      <div v-if="isLoggedIn" class="commentForm">
         <textarea v-model="commentText" rows="2" placeholder="写下你的评论..." />
-        <button class="primary small" :disabled="commentSubmitting" @click="submitComment">
-          {{ commentSubmitting ? '发表中...' : '发表' }}
+        <button class="submitCommentBtn" :disabled="commentSubmitting" @click="submitComment">
+          {{ commentSubmitting ? '发表中...' : '发表评论' }}
         </button>
-        <p v-if="commentError" class="error">{{ commentError }}</p>
+        <p v-if="commentError" class="fieldError">{{ commentError }}</p>
       </div>
-      <p v-else class="muted" style="font-size:13px">请<a href="/login">登录</a>后发表评论</p>
+      <p v-else class="loginHint">请<a href="/login">登录</a>后发表评论</p>
+
       <!-- 评论列表 -->
-      <div v-if="!comments.length" class="muted" style="margin-top:8px">暂无评论</div>
+      <div v-if="!comments.length" class="noComments">暂无评论，来发表第一条吧</div>
       <div v-else class="commentList">
         <div v-for="c in comments" :key="c.id" class="commentItem">
           <div class="commentHead">
+            <div class="commentAvatar">{{ (commentNicknames[c.userId] || '?')[0] }}</div>
             <span class="commentUser">{{ commentNicknames[c.userId] || `用户 #${c.userId}` }}</span>
             <span class="commentTime">{{ c.createdAt?.substring(0, 16) }}</span>
           </div>
@@ -259,177 +312,552 @@ onMounted(() => { load(); loadComments(); checkFavorite() })
       </div>
     </div>
 
-    <div v-if="isLoggedIn && !isOwner && p.status === 'ON_SALE'" class="actions">
-      <button class="primary" @click="buy">立即购买</button>
-      <button class="offerBtn" @click="openOffer">砍价</button>
-      <button class="favBtn" :class="{ active: isFavorited }" :disabled="favoriteToggling" @click="toggleFavorite">
-        {{ isFavorited ? '♥ 已收藏' : '♡ 收藏' }}
-      </button>
-      <button class="reportBtn" @click="openReport">举报</button>
-      <button class="chatBtn" @click="router.push('/messages?product=' + pid)">💬 私聊</button>
-    </div>
-  </div>
-
-  <!-- 砍价弹窗 -->
-  <div v-if="showOfferModal" class="overlay" @click.self="showOfferModal = false">
-    <div class="modal">
-      <h3>发起报价</h3>
-      <div class="info">卖家标价：<strong>¥{{ (p.priceCent / 100).toFixed(2) }}</strong></div>
-      <label>您的报价（元）<input v-model="offerPriceYuan" type="number" step="0.01" min="0" placeholder="例如：1500.00" /></label>
-      <label>留言（选填）<input v-model="offerMessage" placeholder="例如：可以便宜点吗？" /></label>
-      <p v-if="offerError" class="error">{{ offerError }}</p>
-      <p v-if="offerSuccess" class="okMsg">{{ offerSuccess }}</p>
-      <div class="modalActions">
-        <button class="primary" :disabled="offerSubmitting" @click="submitOffer">
-          {{ offerSubmitting ? '提交中...' : '提交报价' }}
-        </button>
-        <button class="ghost" @click="showOfferModal = false">取消</button>
+    <!-- 砍价弹窗 -->
+    <Teleport to="body">
+      <div v-if="showOfferModal" class="modalOverlay" @click.self="showOfferModal = false">
+        <div class="modalCard">
+          <h3><AppIcon name="dollar" :size="18"/> 发起报价</h3>
+          <div class="modalPrice">卖家标价：<strong>¥{{ (p.priceCent / 100).toFixed(2) }}</strong></div>
+          <label>您的报价（元）
+            <input v-model="offerPriceYuan" type="number" step="0.01" min="0" placeholder="例如：1500.00" />
+          </label>
+          <label>留言（选填）
+            <input v-model="offerMessage" placeholder="例如：可以便宜点吗？" />
+          </label>
+          <p v-if="offerError" class="fieldError">{{ offerError }}</p>
+          <p v-if="offerSuccess" class="fieldSuccess">{{ offerSuccess }}</p>
+          <div class="modalActions">
+            <button class="btnPrimary" :disabled="offerSubmitting" @click="submitOffer">
+              {{ offerSubmitting ? '提交中...' : '提交报价' }}
+            </button>
+            <button class="btnGhost" @click="showOfferModal = false">取消</button>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+    </Teleport>
 
-  <!-- 举报弹窗 -->
-  <div v-if="showReportModal" class="overlay" @click.self="showReportModal = false">
-    <div class="modal">
-      <h3>举报商品</h3>
-      <div class="reportReasons">
-        <label v-for="r in reportReasons" :key="r.value" class="reasonLabel" :class="{ sel: reportReason === r.value }">
-          <input type="radio" v-model="reportReason" :value="r.value" />
-          {{ r.label }}
-        </label>
+    <!-- 举报弹窗 -->
+    <Teleport to="body">
+      <div v-if="showReportModal" class="modalOverlay" @click.self="showReportModal = false">
+        <div class="modalCard">
+          <h3><AppIcon name="alert-octagon" :size="18"/> 举报商品</h3>
+          <div class="reportGrid">
+            <label v-for="r in reportReasons" :key="r.value" :class="['reportOption', { selected: reportReason === r.value }]">
+              <input type="radio" v-model="reportReason" :value="r.value" />
+              {{ r.label }}
+            </label>
+          </div>
+          <label>补充说明（选填）
+            <textarea v-model="reportDescription" rows="2" placeholder="请简要描述举报原因..." />
+          </label>
+          <p v-if="reportError" class="fieldError">{{ reportError }}</p>
+          <p v-if="reportSuccess" class="fieldSuccess">{{ reportSuccess }}</p>
+          <div class="modalActions">
+            <button class="btnPrimary" :disabled="reportSubmitting" @click="submitReport">
+              {{ reportSubmitting ? '提交中...' : '提交举报' }}
+            </button>
+            <button class="btnGhost" @click="showReportModal = false">取消</button>
+          </div>
+        </div>
       </div>
-      <label>补充说明（选填）
-        <textarea v-model="reportDescription" rows="2" placeholder="请简要描述举报原因..." />
-      </label>
-      <p v-if="reportError" class="error">{{ reportError }}</p>
-      <p v-if="reportSuccess" class="okMsg">{{ reportSuccess }}</p>
-      <div class="modalActions">
-        <button class="primary" :disabled="reportSubmitting" @click="submitReport">
-          {{ reportSubmitting ? '提交中...' : '提交举报' }}
-        </button>
-        <button class="ghost" @click="showReportModal = false">取消</button>
-      </div>
-    </div>
-  </div>
+    </Teleport>
 
-  <AddressPicker v-if="showAddressPicker" @select="onAddress" @close="showAddressPicker = false" />
+    <AddressPicker v-if="showAddressPicker" @select="onAddress" @close="showAddressPicker = false" />
+  </div>
 </template>
 
 <style scoped>
-.back { border: 1px solid rgba(0,0,0,0.12); background: white; padding: 6px 10px; border-radius: 10px; cursor: pointer; }
-.wrap { margin-top: 12px; display: grid; gap: 14px; max-width: 600px; }
-.hero { height: 300px; border-radius: 18px; background: #f3f3f3 center / cover no-repeat; border: 1px solid rgba(0,0,0,0.08); }
-.meta { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.title { font-size: 18px; font-weight: 600; flex: 1; min-width: 0; }
+.page { max-width: 1000px; margin: 0 auto; }
+
+/* 返回按钮 */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: 1px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+  transition: all var(--transition-fast);
+}
+
+.backBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* 骨架屏 */
+.skeletonDetail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2xl);
+}
+
+.skImage {
+  height: 400px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-lg);
+}
+
+.skInfo { display: grid; gap: var(--space-md); align-content: start; }
+
+.skLine {
+  height: 20px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skLine.w60 { width: 60%; }
+.skLine.w30 { width: 30%; }
+.skLine.w80 { width: 80%; }
+
+.loadingState { padding: 40px 0; }
+.errorState { text-align: center; padding: 60px 20px; color: var(--text-tertiary); }
+.errorIcon { font-size: 48px; display: block; margin-bottom: var(--space-md); }
+
+/* 详情布局 */
+.detailLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3xl);
+  margin-bottom: var(--space-3xl);
+}
+
+.detailLeft { min-width: 0; }
+.detailRight { display: grid; gap: var(--space-lg); align-content: start; }
+
+/* 标题 */
+.productTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* 标签行 */
+.tagRow {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .condTag {
-  font-size: 11px; padding: 2px 8px; border-radius: 6px;
-  background: #e8f5e9; color: #2e7d32; white-space: nowrap;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--brand-light);
+  color: var(--brand-darker);
+}
+
+.shipTag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.shipTag.free { background: var(--success-bg); color: var(--success); }
+.shipTag.paid { background: var(--warning-bg); color: var(--warning); }
+
+/* 价格 */
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.priceSymbol {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.priceValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* 卖家卡片 */
+.sellerCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sellerCard:hover {
+  border-color: var(--brand);
+  box-shadow: var(--shadow-sm);
+}
+
+.sellerAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--bg-secondary);
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
-.price { font-size: 18px; font-weight: 700; flex-shrink: 0; }
-.desc { border: 1px solid rgba(0,0,0,0.08); border-radius: 18px; padding: 14px; background: white; }
-.h3 { font-weight: 600; margin-bottom: 8px; }
-.text { white-space: pre-wrap; line-height: 1.55; color: rgba(0,0,0,0.78); font-size: 14px; }
-.sellerRow {
-  display: flex; align-items: center; gap: 10px; cursor: pointer;
-  padding: 10px 14px; border: 1px solid rgba(0,0,0,0.08); border-radius: 14px;
-  transition: background 0.12s;
+
+.sellerInfo { flex: 1; }
+
+.sellerName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
-.sellerRow:hover { background: rgba(0,0,0,0.02); }
-.sellerAvatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background-color: #e0e0e0; background-position: center; background-size: cover; background-repeat: no-repeat;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: rgba(0,0,0,0.4); flex-shrink: 0;
+
+.sellerStats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: 2px;
 }
-.sellerMeta { display: flex; flex-direction: column; gap: 2px; }
-.sellerName { font-size: 14px; font-weight: 500; }
-.sellerStars { font-size: 12px; color: #f5a623; }
-.sellerHint { font-size: 12px; color: rgba(0,0,0,0.4); }
+
+.sellerStars { color: var(--brand-dark); font-size: 13px; }
+.sellerCount { color: var(--text-tertiary); font-size: 12px; }
+
+.sellerArrow {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+/* 描述 */
+.descCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.descTitle {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 var(--space-sm);
+}
+
+.descContent {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+/* 操作按钮 */
+.actionBar {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: var(--brand-gradient);
+  color: white;
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+  transition: all var(--transition-fast);
+}
+
+.btnPrimary:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(14, 181, 166, 0.4);
+}
+
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btnOffer {
+  border: 1.5px solid var(--brand-dark);
+  background: white;
+  color: var(--brand-darker);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btnOffer:hover {
+  background: var(--brand-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btnFav, .btnChat, .btnReport {
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btnFav:hover { border-color: #e91e63; color: #e91e63; }
+.btnFav.favorited { border-color: #e91e63; color: #e91e63; background: #fce4ec; }
+.btnFav:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btnChat:hover { border-color: var(--info); color: var(--info); }
+.btnReport { color: var(--text-tertiary); }
+.btnReport:hover { border-color: var(--error); color: var(--error); }
+
 /* 评论区 */
-.commentsSection {
-  border: 1px solid rgba(0,0,0,0.08); border-radius: 18px; padding: 14px; background: white;
+.commentsCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-top: var(--space-3xl);
 }
-.commentsSection .h3 { font-weight: 600; margin-bottom: 10px; }
-.commentInput { display: grid; gap: 8px; margin-bottom: 12px; }
-.commentInput textarea {
-  width: 100%; box-sizing: border-box;
-  border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
-  padding: 8px 10px; outline: none; font-family: inherit; font-size: 13px;
-  resize: vertical; min-height: 48px;
+
+.commentsTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 var(--space-lg);
 }
-.primary.small { padding: 6px 12px; font-size: 13px; width: fit-content; }
-.commentList { display: grid; gap: 8px; }
-.commentItem {
-  padding: 8px 10px; border: 1px solid rgba(0,0,0,0.06); border-radius: 10px;
+
+.commentForm {
+  display: grid;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
 }
-.commentHead { display: flex; justify-content: space-between; align-items: center; }
-.commentUser { font-size: 12px; font-weight: 500; color: rgba(0,0,0,0.6); }
-.commentTime { font-size: 11px; color: rgba(0,0,0,0.35); }
-.commentContent { margin: 4px 0 0; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
-.primary {
-  border: 0; background: black; color: white;
-  padding: 12px 14px; border-radius: 14px; cursor: pointer;
-}
-.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.actions { display: flex; gap: 10px; align-items: center; }
-.offerBtn {
-  border: 1px solid #e65100; background: white; color: #e65100;
-  padding: 12px 14px; border-radius: 14px; cursor: pointer; font-size: 14px;
-}
-.favBtn {
-  border: 1px solid rgba(0,0,0,0.12); background: white; color: rgba(0,0,0,0.55);
-  padding: 12px 14px; border-radius: 14px; cursor: pointer; font-size: 14px;
-  transition: all 0.15s;
-}
-.favBtn.active { color: #e91e63; border-color: #e91e63; }
-.favBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-.reportBtn {
-  border: 1px solid rgba(0,0,0,0.12); background: white; color: rgba(0,0,0,0.4);
-  padding: 12px 14px; border-radius: 14px; cursor: pointer; font-size: 14px;
-}
-.reportBtn:hover { border-color: #b00020; color: #b00020; }
-.chatBtn {
-  border: 1px solid #1565c0; background: white; color: #1565c0;
-  padding: 12px 14px; border-radius: 14px; cursor: pointer; font-size: 14px;
-}
-.reportReasons { display: grid; gap: 6px; }
-.reasonLabel {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px;
-  cursor: pointer; font-size: 13px;
-}
-.reasonLabel.sel { border-color: rgba(0,0,0,0.3); background: rgba(0,0,0,0.03); }
-.reasonLabel input[type="radio"] { accent-color: black; }
-.modal textarea {
-  width: 100%; box-sizing: border-box;
-  border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
-  padding: 8px 10px; outline: none; font-family: inherit; font-size: 13px;
+
+.commentForm textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
   resize: vertical;
+  min-height: 56px;
 }
-/* 砍价弹窗 */
-.overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.35);
-  display: flex; align-items: center; justify-content: center; z-index: 50;
+
+.submitCommentBtn {
+  justify-self: end;
+  border: none;
+  background: var(--brand-gradient);
+  color: white;
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
 }
-.modal {
-  background: white; border-radius: 18px; padding: 22px;
-  width: 100%; max-width: 400px;
-  display: grid; gap: 12px;
+
+.submitCommentBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.loginHint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-lg);
 }
-.modal h3 { margin: 0; font-size: 18px; }
-.modal .info { font-size: 14px; color: rgba(0,0,0,0.6); }
-.modal label { display: grid; gap: 4px; font-size: 13px; color: rgba(0,0,0,0.7); }
-.modal input {
-  border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
-  padding: 8px 10px; outline: none; font-size: 14px;
+
+.noComments {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: var(--space-xl);
 }
-.modalActions { display: flex; gap: 8px; }
-.ghost {
-  border: 1px solid rgba(0,0,0,0.12); background: white;
-  padding: 10px 14px; border-radius: 12px; cursor: pointer;
+
+.commentList {
+  display: grid;
+  gap: var(--space-sm);
 }
-.okMsg { color: #2e7d32; font-size: 13px; margin: 0; }
-.muted { color: rgba(0,0,0,0.55); }
-.error { color: #b00020; }
+
+.commentItem {
+  padding: var(--space-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.commentItem:hover { background: var(--bg-tertiary); }
+
+.commentHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.commentAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-gradient-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-darker);
+  flex-shrink: 0;
+}
+
+.commentUser { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.commentTime { font-size: 11px; color: var(--text-tertiary); margin-left: auto; }
+
+.commentContent {
+  margin: var(--space-sm) 0 0 36px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+/* 弹窗 */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  animation: fadeIn 0.2s ease;
+}
+
+.modalCard {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  width: 100%;
+  max-width: 420px;
+  display: grid;
+  gap: var(--space-md);
+  box-shadow: var(--shadow-xl);
+  animation: scaleIn 0.25s ease;
+}
+
+.modalCard h3 { margin: 0; font-size: 18px; }
+
+.modalPrice { font-size: 14px; color: var(--text-secondary); }
+
+.modalCard label {
+  display: grid;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.modalCard input, .modalCard textarea {
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.modalCard textarea { resize: vertical; min-height: 60px; }
+
+.modalActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.btnGhost {
+  border: 1px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.btnGhost:hover { border-color: var(--border-strong); }
+
+.reportGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+.reportOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all var(--transition-fast);
+}
+
+.reportOption:hover { border-color: var(--border-strong); }
+
+.reportOption.selected {
+  border-color: var(--brand-dark);
+  background: var(--brand-light);
+}
+
+.reportOption input[type="radio"] { accent-color: var(--brand-dark); }
+
+.fieldError { color: var(--error); font-size: 13px; margin: 0; }
+.fieldSuccess { color: var(--success); font-size: 13px; margin: 0; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .detailLayout {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .productTitle { font-size: 18px; }
+  .priceValue { font-size: 26px; }
+
+  .actionBar {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-primary);
+    padding: var(--space-md);
+    margin: 0 calc(-1 * var(--space-md));
+    border-top: 1px solid var(--border-light);
+    z-index: 10;
+  }
+
+  .btnPrimary { font-size: 15px; padding: 12px 20px; }
+  .btnOffer, .btnFav, .btnChat, .btnReport { padding: 12px 14px; font-size: 13px; }
+
+  .reportGrid { grid-template-columns: 1fr; }
+}
 </style>

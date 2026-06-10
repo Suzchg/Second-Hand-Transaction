@@ -12,7 +12,7 @@ const products = ref([])
 const soldProducts = ref([])
 const loading = ref(true)
 const error = ref('')
-const tab = ref('sale') // 'sale' | 'sold'
+const tab = ref('sale')
 
 async function load() {
   loading.value = true; error.value = ''
@@ -38,129 +38,261 @@ onMounted(load)
 </script>
 
 <template>
-  <button class="back" @click="$router.back()">返回</button>
+  <div class="page">
+    <button class="back" @click="$router.back()">← 返回</button>
 
-  <p v-if="loading" class="muted">加载中...</p>
-  <p v-else-if="error" class="error">{{ error }}</p>
+    <p v-if="loading" class="muted">加载中...</p>
+    <p v-else-if="error" class="errText">{{ error }}</p>
 
-  <template v-else>
-    <div class="sellerHead">
-      <div class="avatar" :style="seller.avatarUrl ? { backgroundImage: `url(${seller.avatarUrl})` } : {}">
-        <span v-if="!seller.avatarUrl">{{ (seller.nickname || '?')[0] }}</span>
-      </div>
-      <div class="sellerInfo">
-        <h2>{{ seller.nickname }}</h2>
-        <div class="ratingRow">
-          <span v-if="sellerRating && sellerRating.totalCount > 0" class="starsText">
-            {{ '★'.repeat(Math.round(sellerRating.averageScore)) }}{{ '☆'.repeat(5 - Math.round(sellerRating.averageScore)) }}
-            {{ sellerRating.averageScore }} 分 ({{ sellerRating.totalCount }} 评)
-          </span>
-          <span v-else class="muted">暂无评分</span>
+    <template v-else>
+      <!-- 卖家信息卡片 -->
+      <div class="sellerCard">
+        <div class="sellerTop">
+          <div
+            class="avatar"
+            :style="seller.avatarUrl ? { backgroundImage: `url(${seller.avatarUrl})` } : {}"
+          >
+            <span v-if="!seller.avatarUrl" class="avatarFallback">{{ (seller.nickname || '?')[0] }}</span>
+          </div>
+          <div class="sellerMeta">
+            <h2 class="sellerName">{{ seller.nickname }}</h2>
+            <div class="ratingRow">
+              <template v-if="sellerRating && sellerRating.totalCount > 0">
+                <span class="stars">{{ '★'.repeat(Math.round(sellerRating.averageScore)) }}</span>
+                <span class="ratingScore">{{ sellerRating.averageScore }}</span>
+                <span class="ratingCount">({{ sellerRating.totalCount }} 条评价)</span>
+              </template>
+              <span v-else class="noRating">暂无评分</span>
+            </div>
+          </div>
         </div>
-        <span class="muted">在售 {{ products.length }} 件 · 已售 {{ soldProducts.length }} 件</span>
-      </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <button :class="['tab', { active: tab === 'sale' }]" @click="tab = 'sale'">在售</button>
-      <button :class="['tab', { active: tab === 'sold' }]" @click="tab = 'sold'">已售出</button>
-    </div>
-
-    <!-- 在售 -->
-    <div v-if="tab === 'sale'">
-      <div v-if="!products.length" class="muted" style="margin-top:16px">暂无在售商品</div>
-      <div v-else class="grid">
-        <div v-for="p in products" :key="p.id" class="card" @click="router.push(`/products/${p.id}`)">
-          <div class="cover" :style="{ backgroundImage: `url(${p.coverImageUrl})` }" />
-          <div class="info">
-            <div class="title">{{ p.title }}</div>
-            <div class="price">¥{{ (p.priceCent / 100).toFixed(2) }}</div>
+        <div class="statsRow">
+          <div class="stat">
+            <span class="statNum">{{ products.length }}</span>
+            <span class="statLabel">在售</span>
+          </div>
+          <div class="statDivider" />
+          <div class="stat">
+            <span class="statNum">{{ soldProducts.length }}</span>
+            <span class="statLabel">已售</span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 已售出 -->
-    <div v-if="tab === 'sold'">
-      <div v-if="!soldProducts.length" class="muted" style="margin-top:16px">暂无已售出商品</div>
-      <div v-else class="soldList">
-        <div v-for="s in soldProducts" :key="s.orderId" class="soldItem" @click="router.push(`/products/${s.productId}`)">
-          <div class="soldCover" :style="s.productCover ? { backgroundImage: `url(${s.productCover})` } : {}" />
-          <div class="soldInfo">
-            <span class="soldTitle">{{ s.productTitle }}</span>
-            <span class="soldPrice">¥{{ (s.priceCent / 100).toFixed(2) }}</span>
-            <span class="soldDate">{{ s.completedAt?.substring(0, 10) }}</span>
-          </div>
-          <div class="soldRating">
-            <template v-if="s.ratingScore">
-              <span class="starsSmall">{{ '★'.repeat(s.ratingScore) }}</span>
-              <span v-if="s.ratingComment" class="ratingNote">"{{ s.ratingComment }}"</span>
-            </template>
-            <span v-else class="noRate">暂无评分</span>
+      <!-- 标签切换 -->
+      <div class="tabs">
+        <button :class="['tab', { active: tab === 'sale' }]" @click="tab = 'sale'">在售商品</button>
+        <button :class="['tab', { active: tab === 'sold' }]" @click="tab = 'sold'">已售出</button>
+      </div>
+
+      <!-- 在售 -->
+      <div v-if="tab === 'sale'">
+        <p v-if="!products.length" class="empty">暂无在售商品</p>
+        <div v-else class="grid">
+          <div
+            v-for="p in products" :key="p.id"
+            class="productCard" @click="router.push(`/products/${p.id}`)"
+          >
+            <div class="cover" v-lazy-bg="p.coverImageUrl || ''">
+              <span v-if="!p.coverImageUrl" class="coverFallback"><AppIcon name="image" :size="36"/></span>
+            </div>
+            <div class="cardBody">
+              <div class="cardTitle">{{ p.title }}</div>
+              <div class="cardPrice">¥{{ (p.priceCent / 100).toFixed(2) }}</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </template>
+
+      <!-- 已售 -->
+      <div v-if="tab === 'sold'">
+        <p v-if="!soldProducts.length" class="empty">暂无已售出商品</p>
+        <div v-else class="grid">
+          <div
+            v-for="s in soldProducts" :key="s.orderId"
+            class="productCard soldCard" @click="router.push(`/products/${s.productId}`)"
+          >
+            <div class="cover" v-lazy-bg="s.productCover || ''">
+              <span v-if="!s.productCover" class="coverFallback"><AppIcon name="image" :size="36"/></span>
+            </div>
+            <div class="cardBody">
+              <div class="cardTitle">{{ s.productTitle }}</div>
+              <div class="cardPrice">¥{{ (s.priceCent / 100).toFixed(2) }}</div>
+              <div class="cardFooter">
+                <span v-if="s.ratingScore" class="soldStars">{{ '★'.repeat(s.ratingScore) }}</span>
+                <span v-else class="soldNoRate">暂无评分</span>
+                <span class="soldDate">{{ s.completedAt?.substring(0, 10) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-.back { border: 1px solid rgba(0,0,0,0.12); background: white; padding: 6px 10px; border-radius: 10px; cursor: pointer; margin-bottom: 14px; }
-.sellerHead { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-.avatar {
-  width: 60px; height: 60px; border-radius: 50%;
-  background-color: #e0e0e0; background-position: center; background-size: cover; background-repeat: no-repeat;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: rgba(0,0,0,0.4); flex-shrink: 0;
+.page { max-width: 720px; margin: 0 auto; }
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+  transition: all var(--transition-fast);
 }
-.sellerInfo h2 { margin: 0 0 2px; font-size: 18px; }
-.ratingRow { margin-bottom: 2px; }
-.starsText { color: #f5a623; font-size: 13px; }
 
-.tabs { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden; width: fit-content; }
-.tab { border: 0; background: white; padding: 8px 20px; cursor: pointer; font-size: 13px; color: rgba(0,0,0,0.55); }
-.tab:first-child { border-right: 1px solid rgba(0,0,0,0.1); }
-.tab.active { background: black; color: white; }
+.back:hover { border-color: var(--border-strong); color: var(--text-primary); }
 
+/* 卖家卡片 */
+.sellerCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  margin-bottom: var(--space-lg);
+}
+
+.sellerTop { display: flex; align-items: center; gap: var(--space-lg); }
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--bg-secondary);
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.avatarFallback { font-size: 26px; color: var(--text-tertiary); font-weight: 600; }
+
+.sellerMeta { min-width: 0; }
+
+.sellerName { margin: 0 0 var(--space-xs); font-size: 20px; font-weight: 700; }
+
+.ratingRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.stars { color: var(--brand-dark); font-size: 15px; letter-spacing: 1px; }
+.ratingScore { font-weight: 700; font-size: 14px; color: var(--text-secondary); }
+.ratingCount { font-size: 13px; color: var(--text-tertiary); }
+.noRating { font-size: 13px; color: var(--text-tertiary); }
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-light);
+}
+
+.stat { flex: 1; text-align: center; }
+.statNum { display: block; font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.statLabel { display: block; font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.statDivider { width: 1px; height: 32px; background: var(--border-light); }
+
+/* 标签 */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: var(--space-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  width: fit-content;
+}
+
+.tab {
+  border: 0;
+  background: transparent;
+  padding: 9px 22px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.tab.active {
+  background: var(--brand-gradient);
+  color: white;
+  box-shadow: var(--shadow-brand);
+}
+
+.tab:hover:not(.active) { color: var(--text-secondary); }
+
+/* 商品网格 */
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-lg);
 }
-@media (min-width: 760px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 960px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.card {
-  border: 1px solid rgba(0,0,0,0.08); border-radius: 16px;
-  overflow: hidden; background: white; cursor: pointer;
-  transition: transform 0.12s ease;
-}
-.card:hover { transform: translateY(-2px); }
-.cover { height: 140px; background-color: #f3f3f3; background-position: center; background-size: cover; background-repeat: no-repeat; }
-.info { padding: 10px 10px 12px; display: grid; gap: 6px; }
-.title { font-size: 13px; color: rgba(0,0,0,0.85); line-height: 1.35; height: 2.7em; overflow: hidden; }
-.price { font-weight: 600; font-size: 14px; }
 
-.soldList { display: grid; gap: 8px; }
-.soldItem {
-  display: flex; gap: 10px; align-items: center;
-  padding: 10px; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px;
-  cursor: pointer; transition: background 0.12s;
-}
-.soldItem:hover { background: rgba(0,0,0,0.015); }
-.soldCover {
-  width: 52px; height: 52px; border-radius: 8px; flex-shrink: 0;
-  background-color: #f3f3f3; background-position: center; background-size: cover; background-repeat: no-repeat;
-}
-.soldInfo { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.soldTitle { font-size: 13px; font-weight: 500; }
-.soldPrice { font-size: 13px; color: rgba(0,0,0,0.55); }
-.soldDate { font-size: 11px; color: rgba(0,0,0,0.35); }
-.soldRating { flex-shrink: 0; text-align: right; }
-.starsSmall { color: #f5a623; font-size: 14px; }
-.ratingNote { font-size: 11px; color: rgba(0,0,0,0.4); display: block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.noRate { font-size: 11px; color: rgba(0,0,0,0.25); }
+@media (min-width: 640px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-.muted { color: rgba(0,0,0,0.55); }
-.error { color: #b00020; }
+.productCard {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.productCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: var(--bg-secondary);
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coverFallback { display: flex; align-items: center; justify-content: center; opacity: 0.3; }
+
+.soldCard .cover { opacity: 0.85; }
+
+.cardBody { padding: var(--space-md); display: grid; gap: var(--space-sm); }
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardPrice { font-weight: 700; font-size: 15px; color: var(--accent); }
+
+.cardFooter { display: flex; justify-content: space-between; align-items: center; }
+
+.soldStars { color: var(--brand-dark); font-size: 12px; }
+.soldNoRate { font-size: 11px; color: var(--text-tertiary); }
+.soldDate { font-size: 11px; color: var(--text-tertiary); }
+
+.empty { text-align: center; padding: 40px 0; color: var(--text-tertiary); font-size: 14px; }
+.muted { text-align: center; padding: 40px; color: var(--text-tertiary); }
+.errText { color: var(--error); }
 </style>

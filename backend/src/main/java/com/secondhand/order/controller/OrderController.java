@@ -113,6 +113,22 @@ public class OrderController {
         return ApiResponse.ok(orderService.getOrderDetail(principal.userId(), orderId));
     }
 
+    /** 更新订单收货信息（买家在报价接受后补填） */
+    @PutMapping("/{id}/receiver")
+    public ApiResponse<Order> updateReceiver(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable("id") long orderId,
+            @Valid @RequestBody UpdateReceiverRequest req) {
+        return ApiResponse.ok(orderService.updateReceiver(principal.userId(), orderId,
+                req.receiverName(), req.receiverPhone(), req.receiverAddress()));
+    }
+
+    /** 手动触发结算（管理员/定时任务） */
+    @PostMapping("/process-settlements")
+    public ApiResponse<Integer> processSettlements() {
+        return ApiResponse.ok(orderService.processSettlements());
+    }
+
     record CreateOrderRequest(long productId,
                               @NotBlank String receiverName,
                               @NotBlank String receiverPhone,
@@ -121,4 +137,8 @@ public class OrderController {
 
     record ShipRequest(@NotBlank String carrierCode,
                        @NotBlank String trackingNo) {}
+
+    record UpdateReceiverRequest(@NotBlank String receiverName,
+                                 @NotBlank String receiverPhone,
+                                 @NotBlank String receiverAddress) {}
 }

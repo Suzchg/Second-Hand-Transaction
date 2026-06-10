@@ -16,4 +16,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     void deleteByUserIdAndProductId(Long userId, Long productId);
 
     Page<Favorite> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    /** 获取用户收藏的所有商品 ID */
+    @org.springframework.data.jpa.repository.Query("SELECT f.productId FROM Favorite f WHERE f.userId = :userId")
+    java.util.List<Long> findProductIdsByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
 }

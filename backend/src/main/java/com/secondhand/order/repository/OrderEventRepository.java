@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface OrderEventRepository extends JpaRepository<OrderEvent, Long> {
     List<OrderEvent> findByOrderIdOrderByIdAsc(Long orderId);
+
+    List<OrderEvent> findByOrderIdInOrderByCreatedAtDesc(List<Long> orderIds);
 }

@@ -83,15 +83,15 @@ defineExpose({ images })
 <style scoped>
 .grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .thumb {
-  width: 100px; height: 100px; border-radius: 12px; overflow: hidden;
-  position: relative; cursor: pointer; border: 1px solid rgba(0,0,0,0.08);
-  transition: transform 0.12s;
+  width: 100px; height: 100px; border-radius: var(--radius-md); overflow: hidden;
+  position: relative; cursor: pointer; border: 1px solid var(--border-light);
+  transition: transform var(--transition-fast);
 }
 .thumb:hover { transform: scale(1.03); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .coverTag {
   position: absolute; bottom: 4px; left: 4px;
-  padding: 2px 6px; border-radius: 4px;
+  padding: 2px 6px; border-radius: var(--radius-xs);
   background: rgba(0,0,0,0.6); color: white; font-size: 10px;
 }
 .del {
@@ -100,20 +100,21 @@ defineExpose({ images })
   background: rgba(0,0,0,0.45); color: white;
   font-size: 14px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  opacity: 0; transition: opacity 0.12s;
+  opacity: 0; transition: opacity var(--transition-fast);
 }
 .thumb:hover .del { opacity: 1; }
 .addBtn {
   width: 100px; height: 100px;
-  border: 2px dashed rgba(0,0,0,0.15); border-radius: 12px;
+  border: 2px dashed var(--border-default); border-radius: var(--radius-md);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; cursor: pointer;
-  transition: border-color 0.12s; gap: 4px;
+  transition: border-color var(--transition-fast); gap: 4px;
   text-align: center;
+  background: var(--bg-tertiary);
 }
-.addBtn:hover { border-color: rgba(0,0,0,0.35); }
-.plus { font-size: 28px; color: rgba(0,0,0,0.25); }
-.hint { font-size: 10px; color: rgba(0,0,0,0.35); padding: 0 6px; }
-.error { color: #b00020; font-size: 12px; margin: 8px 0 0; }
-.tip { color: rgba(0,0,0,0.3); font-size: 11px; margin: 8px 0 0; }
+.addBtn:hover { border-color: var(--brand-dark); background: var(--brand-light); }
+.plus { font-size: 28px; color: var(--text-tertiary); }
+.hint { font-size: 10px; color: var(--text-tertiary); padding: 0 6px; }
+.error { color: var(--error); font-size: 12px; margin: 8px 0 0; }
+.tip { color: var(--text-tertiary); font-size: 11px; margin: 8px 0 0; }
 </style>

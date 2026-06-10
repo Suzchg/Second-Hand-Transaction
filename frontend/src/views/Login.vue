@@ -2,17 +2,17 @@
 import { ref } from 'vue'
 import { api } from '../api.js'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user.js'
 
 const router = useRouter()
-const mode = ref('login')           // login | register
-const identityType = ref('PHONE')   // PHONE | EMAIL
-const identifier = ref('')          // 手机号或邮箱值
+const mode = ref('login')
+const identityType = ref('PHONE')
+const identifier = ref('')
 const password = ref('')
 const error = ref('')
 const fieldErrors = ref({})
 const loading = ref(false)
 
-/** 简单的格式校验 */
 function validate() {
   fieldErrors.value = {}
   const val = identifier.value.trim()
@@ -57,16 +57,12 @@ async function submit() {
     }
 
     const path = mode.value === 'login' ? '/api/auth/login' : '/api/auth/register'
-    // api() 已自动解包 ApiResponse.data，直接拿到 { accessToken, userId, nickname }
     const user = await api(path, { method: 'POST', body, auth: false })
 
-    localStorage.setItem('token', user.accessToken)
-    localStorage.setItem('userId', String(user.userId))
-    localStorage.setItem('nickname', user.nickname || '新用户')
-    localStorage.setItem('role', user.role || 'USER')
     localStorage.setItem('lastIdentifier', identifier.value.trim())
+    const userStore = useUserStore()
+    userStore.setAuth(user)
 
-    // 强制整页刷新，确保 App.vue onMounted 正确读取登录态
     window.location.replace('/')
   } catch (e) {
     error.value = e.message || '操作失败，请稍后重试'
@@ -77,166 +73,247 @@ async function submit() {
 </script>
 
 <template>
-  <div class="card">
-    <h1 class="title">SecondHand</h1>
-    <p class="sub">登录后开始浏览与交易</p>
+  <div class="loginPage">
+    <!-- 背景装饰 -->
+    <div class="bgDecor" />
 
-    <!-- 登录/注册切换 -->
-    <div class="seg">
-      <button
-        class="segBtn" :class="{ active: mode === 'login' }"
-        @click="mode = 'login'; error = ''; fieldErrors = {}"
-      >登录</button>
-      <button
-        class="segBtn" :class="{ active: mode === 'register' }"
-        @click="mode = 'register'; error = ''; fieldErrors = {}"
-      >注册</button>
-    </div>
+    <div class="loginCard">
+      <div class="cardHeader">
+        <span class="logoEmoji"><AppIcon name="users" :size="40"/></span>
+        <h1 class="logoTitle">Second hand</h1>
+        <p class="logoDesc">Your marketplace for pre-loved treasures</p>
+      </div>
 
-    <!-- 手机号/邮箱切换 -->
-    <div class="seg" style="margin-top: 10px">
-      <button
-        class="segBtn" :class="{ active: identityType === 'PHONE' }"
-        @click="identityType = 'PHONE'; identifier = ''; error = ''; fieldErrors = {}"
-      >手机号</button>
-      <button
-        class="segBtn" :class="{ active: identityType === 'EMAIL' }"
-        @click="identityType = 'EMAIL'; identifier = ''; error = ''; fieldErrors = {}"
-      >邮箱</button>
-    </div>
+      <!-- 登录/注册切换 -->
+      <div class="segRow">
+        <button
+          :class="['segBtn', { active: mode === 'login' }]"
+          @click="mode = 'login'; error = ''; fieldErrors = {}"
+        >登录</button>
+        <button
+          :class="['segBtn', { active: mode === 'register' }]"
+          @click="mode = 'register'; error = ''; fieldErrors = {}"
+        >注册</button>
+      </div>
 
-    <div class="form">
-      <!-- 标识符输入 -->
-      <label>
-        {{ identityType === 'PHONE' ? '手机号' : '邮箱' }}
-        <input
-          v-model="identifier"
-          :placeholder="identityType === 'PHONE' ? '例如：13800138000' : '例如：me@example.com'"
-          autocomplete="username"
-          @input="fieldErrors.identifier = ''"
-        />
-        <span v-if="fieldErrors.identifier" class="fieldError">{{ fieldErrors.identifier }}</span>
-      </label>
+      <!-- 手机号/邮箱切换 -->
+      <div class="segRow" style="margin-top: 8px">
+        <button
+          :class="['segBtn', { active: identityType === 'PHONE' }]"
+          @click="identityType = 'PHONE'; identifier = ''; error = ''; fieldErrors = {}"
+        ><AppIcon name="phone" :size="16"/> 手机号</button>
+        <button
+          :class="['segBtn', { active: identityType === 'EMAIL' }]"
+          @click="identityType = 'EMAIL'; identifier = ''; error = ''; fieldErrors = {}"
+        ><AppIcon name="at-sign" :size="16"/> 邮箱</button>
+      </div>
 
-      <!-- 密码输入 -->
-      <label>
-        密码
-        <input
-          v-model="password"
-          type="password"
-          placeholder="至少 6 位"
-          autocomplete="current-password"
-          @input="fieldErrors.password = ''"
-        />
-        <span v-if="fieldErrors.password" class="fieldError">{{ fieldErrors.password }}</span>
-      </label>
+      <div class="formArea">
+        <label>
+          {{ identityType === 'PHONE' ? '手机号' : '邮箱地址' }}
+          <input
+            v-model="identifier"
+            :placeholder="identityType === 'PHONE' ? '例如：13800138000' : '例如：me@example.com'"
+            autocomplete="username"
+            @input="fieldErrors.identifier = ''"
+          />
+          <span v-if="fieldErrors.identifier" class="fieldErr">{{ fieldErrors.identifier }}</span>
+        </label>
 
-      <p v-if="error" class="error">{{ error }}</p>
+        <label>
+          密码
+          <input
+            v-model="password"
+            type="password"
+            placeholder="至少 6 位字符"
+            autocomplete="current-password"
+            @input="fieldErrors.password = ''"
+          />
+          <span v-if="fieldErrors.password" class="fieldErr">{{ fieldErrors.password }}</span>
+        </label>
 
-      <button class="primary" :disabled="loading" @click="submit">
-        {{ loading ? '处理中...' : mode === 'login' ? '登录' : '注册' }}
-      </button>
+        <div v-if="error" class="errorBanner">{{ error }}</div>
 
-      <p class="hint">
-        {{ mode === 'login' ? '还没有账号？切换至「注册」' : '已有账号？切换至「登录」' }}
-      </p>
+        <button class="submitBtn" :disabled="loading" @click="submit">
+          {{ loading ? '处理中...' : mode === 'login' ? '登录' : '注册新账号' }}
+        </button>
+
+        <p class="switchHint">
+          {{ mode === 'login' ? '还没有账号？切换至「注册」创建新账号' : '已有账号？切换至「登录」' }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.card {
+.loginPage {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景装饰 */
+.bgDecor {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: var(--brand-gradient-soft);
+  border-radius: 50%;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.loginCard {
+  position: relative;
+  width: 100%;
   max-width: 420px;
-  margin: 60px auto 0;
-  padding: 28px 24px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 18px;
-  background: white;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3xl) var(--space-2xl);
+  box-shadow: var(--shadow-lg);
 }
-.title {
+
+.cardHeader {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.logoEmoji { display: flex; justify-content: center; margin-bottom: var(--space-sm); color: var(--brand); }
+
+.logoTitle {
   margin: 0;
-  font-size: 24px;
-  letter-spacing: 0.2px;
-  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+  letter-spacing: 2px;
+  font-style: italic;
 }
-.sub {
-  margin: 8px 0 18px;
-  color: rgba(0, 0, 0, 0.5);
-  font-size: 14px;
-  text-align: center;
+
+.logoDesc {
+  margin: var(--space-sm) 0 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
 }
-.seg {
+
+/* 切换按钮 */
+.segRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--space-sm);
 }
+
 .segBtn {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: white;
-  padding: 9px 10px;
-  border-radius: 12px;
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-primary);
+  padding: 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.15s;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
 }
+
+.segBtn:hover { border-color: var(--border-strong); }
+
 .segBtn.active {
-  border-color: rgba(0, 0, 0, 0.4);
-  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--brand-dark);
+  background: var(--brand-light);
+  color: var(--brand-darker);
   font-weight: 600;
 }
-.form {
-  margin-top: 16px;
+
+/* 表单 */
+.formArea {
+  margin-top: var(--space-xl);
   display: grid;
-  gap: 12px;
+  gap: var(--space-md);
 }
-label {
+
+.formArea label {
   display: grid;
-  gap: 6px;
+  gap: var(--space-xs);
   font-size: 13px;
-  color: rgba(0, 0, 0, 0.7);
-}
-input {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 12px;
-  padding: 10px 12px;
-  outline: none;
-  font-size: 15px;
-  transition: border-color 0.15s;
-}
-input:focus {
-  border-color: rgba(0, 0, 0, 0.35);
-}
-.fieldError {
-  font-size: 12px;
-  color: #b00020;
-}
-.primary {
-  border: 0;
-  background: black;
-  color: white;
-  padding: 11px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 15px;
+  color: var(--text-secondary);
   font-weight: 500;
-  transition: opacity 0.15s;
 }
-.primary:disabled {
+
+.formArea input {
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.formArea input:focus {
+  background: var(--bg-primary);
+  border-color: var(--brand-dark) !important;
+  box-shadow: 0 0 0 3px rgba(14, 181, 166, 0.12) !important;
+}
+
+.fieldErr {
+  font-size: 12px;
+  color: var(--error);
+}
+
+.errorBanner {
+  padding: 10px 14px;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-md);
+  color: var(--error);
+  font-size: 13px;
+}
+
+.submitBtn {
+  border: none;
+  background: var(--brand-gradient);
+  color: white;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: var(--shadow-brand);
+  transition: all var(--transition-fast);
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(14, 181, 166, 0.4);
+}
+
+.submitBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
-.error {
-  margin: 0;
-  padding: 10px 12px;
-  background: #fce4ec;
-  border-radius: 10px;
-  color: #b00020;
-  font-size: 13px;
-}
-.hint {
+
+.switchHint {
   text-align: center;
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-tertiary);
   margin: 0;
+}
+
+@media (max-width: 480px) {
+  .loginCard {
+    padding: var(--space-xl) var(--space-lg);
+    border-radius: var(--radius-lg);
+  }
 }
 </style>

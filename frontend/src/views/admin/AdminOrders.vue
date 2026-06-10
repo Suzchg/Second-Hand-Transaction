@@ -59,23 +59,29 @@ onMounted(() => load())
 </template>
 
 <style scoped>
-h2 { margin: 0 0 12px; font-size: 20px; }
-.msg { padding: 6px 10px; background: #e8f5e9; border-radius: 8px; font-size: 13px; color: #2e7d32; margin-bottom: 8px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }
-th { font-weight: 600; color: rgba(0,0,0,0.5); font-size: 12px; }
-.tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; background: rgba(0,0,0,0.06); }
-.tag.WAIT_PAY { background: #fff3e0; color: #e65100; }
-.tag.WAIT_DELIVER { background: #e3f2fd; color: #1565c0; }
-.tag.WAIT_RECEIVE { background: #e8eaf6; color: #283593; }
-.tag.COMPLETED { background: #e8f5e9; color: #2e7d32; }
-.tag.CANCELLED { background: #fce4ec; color: #b00020; }
-.tag.AFTER_SALE { background: #fce4ec; color: #c62828; }
-.time { color: rgba(0,0,0,0.4); white-space: nowrap; }
+h2 { margin: 0 0 12px; font-size: 20px; color: var(--text-primary); }
+.msg { padding: 6px 10px; background: var(--success-bg); border-radius: 8px; font-size: 13px; color: var(--success); margin-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text-primary); }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-light); }
+th { font-weight: 600; color: var(--text-tertiary); font-size: 12px; }
+.tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; background: var(--bg-secondary); color: var(--text-secondary); }
+.tag.WAIT_PAY { background: var(--warning-bg); color: var(--warning); }
+.tag.WAIT_DELIVER { background: var(--info-bg); color: var(--info); }
+.tag.WAIT_RECEIVE { background: var(--info-bg); color: var(--info); }
+.tag.COMPLETED { background: var(--success-bg); color: var(--success); }
+.tag.CANCELLED { background: var(--error-bg); color: var(--error); }
+.tag.AFTER_SALE { background: var(--error-bg); color: var(--error); }
+.time { color: var(--text-tertiary); white-space: nowrap; }
 .actions { display: flex; gap: 6px; }
-.act { padding: 4px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px; background: white; cursor: pointer; font-size: 11px; }
-.act.danger { color: #b00020; border-color: #b00020; }
-.pager { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; }
-.pager button { padding: 6px 12px; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; background: white; cursor: pointer; }
+.act {
+  padding: 4px 8px; border: 1px solid var(--border-default); border-radius: 6px;
+  background: var(--bg-primary); cursor: pointer; font-size: 11px; color: var(--text-secondary);
+}
+.act.danger { color: var(--error); border-color: var(--error-border); }
+.pager { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--text-primary); }
+.pager button {
+  padding: 6px 12px; border: 1px solid var(--border-default); border-radius: 8px;
+  background: var(--bg-primary); cursor: pointer; color: var(--text-secondary);
+}
 .pager button:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

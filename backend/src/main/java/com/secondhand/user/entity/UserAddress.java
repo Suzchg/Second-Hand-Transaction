@@ -38,6 +38,10 @@ public class UserAddress {
     @Column(name = "is_default")
     private Boolean isDefault = false;
 
+    /** 地址标签：家/学校/公司/其他，null 表示无标签 */
+    @Column(length = 20)
+    private String tag;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -71,6 +75,9 @@ public class UserAddress {
 
     public Boolean getIsDefault() { return isDefault; }
     public void setIsDefault(Boolean isDefault) { this.isDefault = isDefault; }
+
+    public String getTag() { return tag; }
+    public void setTag(String tag) { this.tag = tag; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -31,6 +31,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Query("SELECT DISTINCT m.productId FROM ChatMessage m WHERE m.senderId = :userId OR m.receiverId = :userId")
     List<Long> findDistinctProductIdsByUserId(@Param("userId") Long userId);
 
+    /** 用户参与的所有对话（按 productId + 对方 userId 去重） */
+    @Query("SELECT DISTINCT m.productId, " +
+           "CASE WHEN m.senderId = :userId THEN m.receiverId ELSE m.senderId END " +
+           "FROM ChatMessage m WHERE m.senderId = :userId OR m.receiverId = :userId")
+    List<Object[]> findDistinctConversationPairs(@Param("userId") Long userId);
+
     /** 某商品下用户相关的最后一条消息 */
     @Query("SELECT m FROM ChatMessage m WHERE m.productId = :productId " +
            "AND (m.senderId = :userId OR m.receiverId = :userId) " +
@@ -45,4 +51,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     int markRead(@Param("productId") Long productId,
                  @Param("senderId") Long senderId,
                  @Param("receiverId") Long receiverId);
+
+    /** 用户未读消息总数 */
+    long countByReceiverIdAndIsReadFalse(Long receiverId);
 }

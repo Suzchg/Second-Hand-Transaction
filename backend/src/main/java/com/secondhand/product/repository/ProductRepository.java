@@ -55,4 +55,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("status") ProductStatus status,
             @Param("sellerId") Long sellerId,
             Pageable pageable);
+
+    // ---- 推荐 ----
+
+    /**
+     * 推荐总览：展示所有在售商品，但用户偏好分类的商品排在最前面。
+     * 如果 favCategoryIds 为空，则按时间倒序返回所有商品。
+     */
+    @Query("SELECT p FROM Product p WHERE p.status = :status AND p.quantity > 0 " +
+           "ORDER BY CASE WHEN p.categoryId IN :favCategoryIds THEN 0 ELSE 1 END, p.createdAt DESC")
+    Page<Product> findRecommended(@Param("status") ProductStatus status,
+                                   @Param("favCategoryIds") List<Long> favCategoryIds,
+                                   Pageable pageable);
 }

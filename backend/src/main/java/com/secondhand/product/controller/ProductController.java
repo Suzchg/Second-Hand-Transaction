@@ -33,7 +33,8 @@ public class ProductController {
             @Valid @RequestBody CreateProductRequest req) {
         return ApiResponse.ok(productService.create(principal.userId(),
                 new ProductService.CreateCommand(req.title(), req.priceCent(), req.coverImageUrl(),
-                        req.description(), req.categoryId(), req.quantity(), req.condition())));
+                        req.description(), req.categoryId(), req.quantity(), req.condition(),
+                        req.freeShipping(), req.shippingFeeCent())));
     }
 
     @PutMapping("/{id}")
@@ -43,7 +44,8 @@ public class ProductController {
             @Valid @RequestBody UpdateProductRequest req) {
         return ApiResponse.ok(productService.update(principal.userId(), productId,
                 new ProductService.UpdateCommand(req.title(), req.priceCent(), req.coverImageUrl(),
-                        req.description(), req.status(), req.categoryId(), req.condition())));
+                        req.description(), req.status(), req.categoryId(), req.condition(),
+                        req.freeShipping(), req.shippingFeeCent())));
     }
 
     @GetMapping
@@ -52,6 +54,10 @@ public class ProductController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword) {
+        // categoryId=0 表示推荐
+        if (categoryId != null && categoryId == 0L) {
+            return ApiResponse.ok(productService.getRecommended(page, size));
+        }
         // 关键词搜索优先
         if (keyword != null && !keyword.isBlank()) {
             if (categoryId != null) {
@@ -79,7 +85,9 @@ public class ProductController {
             @NotBlank String description,
             Long categoryId,
             @Min(1) Integer quantity,
-            ProductCondition condition) {}
+            ProductCondition condition,
+            Boolean freeShipping,
+            @Min(0) Integer shippingFeeCent) {}
 
     public record UpdateProductRequest(
             @Size(max = 100) String title,
@@ -88,5 +96,7 @@ public class ProductController {
             String description,
             ProductStatus status,
             Long categoryId,
-            ProductCondition condition) {}
+            ProductCondition condition,
+            Boolean freeShipping,
+            @Min(0) Integer shippingFeeCent) {}
 }

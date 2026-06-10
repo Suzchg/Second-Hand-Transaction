@@ -21,74 +21,248 @@ function closeLightbox() { lightbox.value = false }
 
 <template>
   <div v-if="images.length" class="gallery">
-    <div class="main" @click="openLightbox">
-      <img :src="images[active].thumbnailUrl" :alt="'图片 ' + (active + 1)" />
-      <button v-if="images.length > 1" class="nav left" @click.stop="prev">‹</button>
-      <button v-if="images.length > 1" class="nav right" @click.stop="next">›</button>
+    <!-- 主图 -->
+    <div class="mainImage" @click="openLightbox">
+      <img :src="images[active].thumbnailUrl" :alt="'图片 ' + (active + 1)" loading="lazy" />
+      <button v-if="images.length > 1" class="mainNav mainPrev" @click.stop="prev">‹</button>
+      <button v-if="images.length > 1" class="mainNav mainNext" @click.stop="next">›</button>
+      <div class="imageCounter" v-if="images.length > 1">{{ active + 1 }} / {{ images.length }}</div>
     </div>
-    <div v-if="images.length > 1" class="dots">
-      <span v-for="(img, i) in images" :key="img.id" :class="['dot', { on: i === active }]" @click="active = i" />
+
+    <!-- 缩略图列表 -->
+    <div v-if="images.length > 1" class="thumbnailList">
+      <div
+        v-for="(img, i) in images"
+        :key="img.id"
+        :class="['thumbnail', { active: i === active }]"
+        @click="active = i"
+      >
+        <img :src="img.thumbnailUrl" :alt="'缩略图 ' + (i + 1)" loading="lazy" />
+      </div>
     </div>
 
     <!-- Lightbox -->
-    <div v-if="lightbox" class="lightboxOverlay" @click="closeLightbox">
-      <button class="closeBtn" @click="closeLightbox">✕</button>
-      <button v-if="images.length > 1" class="lbNav lbLeft" @click.stop="prev">‹</button>
-      <img :src="images[active].url" :alt="'原图 ' + (active + 1)" class="lightboxImg" @click.stop />
-      <button v-if="images.length > 1" class="lbNav lbRight" @click.stop="next">›</button>
-    </div>
+    <Teleport to="body">
+      <div v-if="lightbox" class="lightboxOverlay" @click="closeLightbox">
+        <button class="lbClose" @click="closeLightbox"><AppIcon name="close" :size="20"/></button>
+        <button v-if="images.length > 1" class="lbNav lbPrev" @click.stop="prev">‹</button>
+        <img :src="images[active].url" :alt="'原图 ' + (active + 1)" class="lbImage" @click.stop />
+        <button v-if="images.length > 1" class="lbNav lbNext" @click.stop="next">›</button>
+        <div class="lbCounter" v-if="images.length > 1">{{ active + 1 }} / {{ images.length }}</div>
+      </div>
+    </Teleport>
   </div>
-  <div v-else class="placeholder">暂无图片</div>
+  <div v-else class="noImage">
+    <span class="noImageIcon"><AppIcon name="image" :size="48"/></span>
+    <span>暂无图片</span>
+  </div>
 </template>
 
 <style scoped>
-.main {
-  height: 340px; border-radius: 18px;
-  background-color: #f3f3f3;
-  position: relative; border: 1px solid rgba(0,0,0,0.08);
-  overflow: hidden; cursor: zoom-in;
-  display: flex; align-items: center; justify-content: center;
+.gallery {
+  display: grid;
+  gap: var(--space-md);
 }
-.main img {
-  max-width: 100%; max-height: 100%;
+
+/* 主图 */
+.mainImage {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  overflow: hidden;
+  cursor: zoom-in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  max-height: 500px;
+}
+
+.mainImage img {
+  max-width: 100%;
+  max-height: 500px;
   object-fit: contain;
+  display: block;
 }
-.nav {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 36px; height: 36px; border-radius: 50%; border: 0;
-  background: rgba(255,255,255,0.85); font-size: 22px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: rgba(0,0,0,0.6);
+
+.mainNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  opacity: 0;
 }
-.left { left: 10px; }
-.right { right: 10px; }
-.dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,0.15); cursor: pointer; }
-.dot.on { background: rgba(0,0,0,0.5); }
-.placeholder { height: 200px; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.3); }
+
+.mainImage:hover .mainNav { opacity: 1; }
+
+.mainNav:hover {
+  background: white;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.mainPrev { left: 12px; }
+.mainNext { right: 12px; }
+
+.imageCounter {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(4px);
+}
+
+/* 缩略图 */
+.thumbnailList {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding: var(--space-xs) 0;
+}
+
+.thumbnail {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+}
+
+.thumbnail:hover {
+  border-color: var(--border-strong);
+}
+
+.thumbnail.active {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(14, 181, 166, 0.25);
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 无图片 */
+.noImage {
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.noImageIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
 
 /* Lightbox */
 .lightboxOverlay {
-  position: fixed; inset: 0; z-index: 100;
-  background: rgba(0,0,0,0.9);
-  display: flex; align-items: center; justify-content: center;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.closeBtn {
-  position: absolute; top: 16px; right: 20px;
-  background: none; border: 0; color: white; font-size: 28px; cursor: pointer;
+
+.lbClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
   z-index: 2;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
 }
-.lightboxImg {
-  max-width: 92vw; max-height: 92vh;
-  object-fit: contain; border-radius: 4px;
+
+.lbClose:hover { opacity: 1; }
+
+.lbImage {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+  user-select: none;
 }
+
 .lbNav {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 48px; height: 48px; border-radius: 50%; border: 0;
-  background: rgba(255,255,255,0.2); font-size: 30px; cursor: pointer;
-  color: white; display: flex; align-items: center; justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 32px;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2;
+  transition: background var(--transition-fast);
 }
-.lbLeft { left: 16px; }
-.lbRight { right: 16px; }
+
+.lbNav:hover { background: rgba(255, 255, 255, 0.25); }
+
+.lbPrev { left: 16px; }
+.lbNext { right: 16px; }
+
+.lbCounter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .mainImage {
+    min-height: 280px;
+    max-height: 360px;
+  }
+
+  .mainNav { opacity: 1; width: 32px; height: 32px; font-size: 18px; }
+  .mainPrev { left: 8px; }
+  .mainNext { right: 8px; }
+
+  .thumbnail { width: 52px; height: 52px; }
+}
 </style>

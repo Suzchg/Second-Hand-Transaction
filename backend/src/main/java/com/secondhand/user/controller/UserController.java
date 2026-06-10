@@ -1,7 +1,12 @@
 package com.secondhand.user.controller;
 
 import com.secondhand.auth.security.AuthPrincipal;
+import com.secondhand.chat.repository.ChatMessageRepository;
 import com.secondhand.common.ApiResponse;
+import com.secondhand.offer.entity.OfferStatus;
+import com.secondhand.offer.repository.OfferRepository;
+import com.secondhand.order.entity.OrderStatus;
+import com.secondhand.order.repository.OrderRepository;
 import com.secondhand.order.service.OrderService;
 import com.secondhand.product.entity.Product;
 import com.secondhand.product.service.ProductService;
@@ -24,12 +29,21 @@ public class UserController {
     private final UserService userService;
     private final ProductService productService;
     private final OrderService orderService;
+    private final ChatMessageRepository chatMessageRepo;
+    private final OfferRepository offerRepo;
+    private final OrderRepository orderRepo;
 
     public UserController(UserService userService, ProductService productService,
-                          OrderService orderService) {
+                          OrderService orderService,
+                          ChatMessageRepository chatMessageRepo,
+                          OfferRepository offerRepo,
+                          OrderRepository orderRepo) {
         this.userService = userService;
         this.productService = productService;
         this.orderService = orderService;
+        this.chatMessageRepo = chatMessageRepo;
+        this.offerRepo = offerRepo;
+        this.orderRepo = orderRepo;
     }
 
     /** 获取卖家公开信息 */
@@ -79,8 +93,28 @@ public class UserController {
         return ApiResponse.ok(url);
     }
 
+    /** 通知聚合：未读消息、待处理报价、待处理订单 */
+    @GetMapping("/notifications")
+    public ApiResponse<NotificationCounts> notifications(
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        long userId = principal.userId();
+
+        long unreadMessages = chatMessageRepo.countByReceiverIdAndIsReadFalse(userId);
+        long pendingOffersReceived = offerRepo.countBySellerIdAndStatus(userId, OfferStatus.PENDING);
+        long pendingOrdersBuyer = orderRepo.countByBuyerIdAndStatusIn(userId,
+                List.of(OrderStatus.WAIT_PAY, OrderStatus.WAIT_RECEIVE));
+        long pendingOrdersSeller = orderRepo.countBySellerIdAndStatusIn(userId,
+                List.of(OrderStatus.WAIT_DELIVER));
+
+        return ApiResponse.ok(new NotificationCounts(
+                unreadMessages, pendingOffersReceived, pendingOrdersBuyer, pendingOrdersSeller));
+    }
+
     record UpdateProfileRequest(
             @Size(max = 50) String nickname,
             @Size(max = 20) String phone,
             @Size(max = 128) String email) {}
+
+    record NotificationCounts(long unreadMessages, long pendingOffersReceived,
+                              long pendingOrdersBuyer, long pendingOrdersSeller) {}
 }

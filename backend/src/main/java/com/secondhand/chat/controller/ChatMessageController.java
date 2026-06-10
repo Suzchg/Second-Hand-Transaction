@@ -4,6 +4,7 @@ import com.secondhand.auth.security.AuthPrincipal;
 import com.secondhand.chat.entity.ChatMessage;
 import com.secondhand.chat.service.ChatMessageService;
 import com.secondhand.common.ApiResponse;
+import com.secondhand.common.ratelimit.RateLimit;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,7 @@ public class ChatMessageController {
     }
 
     /** 发送私聊消息（receiverId 必填，调用方明确知道发给谁） */
+    @RateLimit(maxRequests = 20, windowSeconds = 60)
     @PostMapping("/api/products/{productId}/chat")
     public ApiResponse<ChatMessage> send(
             @AuthenticationPrincipal AuthPrincipal principal,

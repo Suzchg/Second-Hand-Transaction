@@ -41,6 +41,14 @@ public class Product {
     @Column(name = "product_condition", length = 32)
     private ProductCondition condition;
 
+    /** 是否免邮（0=否 1=是） */
+    @Column(name = "free_shipping", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private Boolean freeShipping = false;
+
+    /** 邮费（分），免邮时为0 */
+    @Column(name = "shipping_fee_cent")
+    private Integer shippingFeeCent = 0;
+
     @Column(name = "created_at") private LocalDateTime createdAt;
     @Column(name = "updated_at") private LocalDateTime updatedAt;
 
@@ -63,6 +71,10 @@ public class Product {
     public void setStatus(ProductStatus s) { this.status = s; }
     public ProductCondition getCondition() { return condition; }
     public void setCondition(ProductCondition c) { this.condition = c; }
+    public Boolean getFreeShipping() { return freeShipping; }
+    public void setFreeShipping(Boolean v) { this.freeShipping = v; }
+    public Integer getShippingFeeCent() { return shippingFeeCent; }
+    public void setShippingFeeCent(Integer v) { this.shippingFeeCent = v; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime t) { this.createdAt = t; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -44,21 +44,21 @@ const orderStatusLabel = {
 </template>
 
 <style scoped>
-h2 { margin: 0 0 16px; font-size: 20px; }
-h3 { margin: 0 0 10px; font-size: 15px; }
-.muted { color: rgba(0,0,0,0.4); }
+h2 { margin: 0 0 16px; font-size: 20px; color: var(--text-primary); }
+h3 { margin: 0 0 10px; font-size: 15px; color: var(--text-primary); }
+.muted { color: var(--text-tertiary); }
 .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
 .card {
-  border: 1px solid rgba(0,0,0,0.08); border-radius: 14px;
-  padding: 18px; text-align: center; background: white;
+  border: 1px solid var(--border-light); border-radius: 14px;
+  padding: 18px; text-align: center; background: var(--bg-primary);
 }
-.num { font-size: 28px; font-weight: 700; }
-.label { font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 4px; }
+.num { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.label { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
 .statusList { display: grid; gap: 8px; }
 .statusItem { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.statusName { min-width: 60px; color: rgba(0,0,0,0.6); }
-.statusBar { flex: 1; height: 8px; background: rgba(0,0,0,0.06); border-radius: 4px; overflow: hidden; }
-.fill { display: block; height: 100%; background: rgba(0,0,0,0.3); border-radius: 4px; min-width: 2px; }
-.statusCount { font-weight: 600; min-width: 30px; text-align: right; }
+.statusName { min-width: 60px; color: var(--text-secondary); }
+.statusBar { flex: 1; height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; }
+.fill { display: block; height: 100%; background: var(--brand); border-radius: 4px; min-width: 2px; }
+.statusCount { font-weight: 600; min-width: 30px; text-align: right; color: var(--text-primary); }
 </style>

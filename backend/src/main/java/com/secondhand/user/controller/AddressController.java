@@ -38,6 +38,7 @@ public class AddressController {
         addr.setDistrict(req.district());
         addr.setDetailAddress(req.detailAddress());
         addr.setIsDefault(req.isDefault());
+        addr.setTag(req.tag());
         return ApiResponse.ok(addressService.create(principal.userId(), addr));
     }
 
@@ -54,6 +55,7 @@ public class AddressController {
         addr.setDistrict(req.district());
         addr.setDetailAddress(req.detailAddress());
         addr.setIsDefault(req.isDefault());
+        addr.setTag(req.tag());
         return ApiResponse.ok(addressService.update(principal.userId(), addressId, addr));
     }
 
@@ -79,5 +81,6 @@ public class AddressController {
             @NotBlank String city,
             @NotBlank String district,
             @NotBlank String detailAddress,
-            Boolean isDefault) {}
+            Boolean isDefault,
+            String tag) {}
 }

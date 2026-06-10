@@ -51,41 +51,54 @@ public class CategoryService {
         return ids;
     }
 
-    /** 种子数据：应用启动时若分类表为空则自动填充 */
+    /** 种子数据：仅一级分类 + emoji 图标。若存在旧二级分类（总数 > 25）则重建 */
     @PostConstruct
     @Transactional
     public void seedCategories() {
-        if (categoryRepo.count() > 0) return;
+        // 新格式只有 23 个一级分类，旧格式包含二级分类（总数超 100）
+        if (categoryRepo.count() <= 25 && categoryRepo.count() > 0) return;
+
+        // 清除旧分类（含二级分类）
+        categoryRepo.deleteAll();
 
         LocalDateTime now = LocalDateTime.now();
-        Map<String, List<String>> seed = new LinkedHashMap<>();
-        seed.put("数码电子", List.of("手机", "电脑/笔记本", "平板", "相机/摄影", "耳机/音箱", "智能穿戴"));
-        seed.put("服装配饰", List.of("男装", "女装", "鞋靴", "包包", "珠宝首饰", "手表"));
-        seed.put("图书音像", List.of("教材/教辅", "小说文学", "考试考证", "杂志期刊", "儿童绘本"));
-        seed.put("生活家居", List.of("家具", "家电", "厨具餐具", "家纺家饰", "清洁日用"));
-        seed.put("运动户外", List.of("健身器材", "球类运动", "骑行装备", "露营/钓鱼", "运动鞋服"));
-        seed.put("其他", List.of("母婴用品", "美妆护肤", "玩具/乐器", "文玩收藏", "卡券/其他"));
+        record Cat(String name, String icon) {}
+        List<Cat> seed = List.of(
+            new Cat("手机通讯", "📱"),
+            new Cat("电脑办公", "💻"),
+            new Cat("数码影音", "📷"),
+            new Cat("家用电器", "🔌"),
+            new Cat("家具家装", "🛋️"),
+            new Cat("家居日用", "🏠"),
+            new Cat("男装", "👔"),
+            new Cat("女装", "👗"),
+            new Cat("鞋靴箱包", "👟"),
+            new Cat("珠宝配饰", "💍"),
+            new Cat("美妆护肤", "💄"),
+            new Cat("母婴亲子", "👶"),
+            new Cat("运动户外", "⚽"),
+            new Cat("图书音像", "📚"),
+            new Cat("食品生鲜", "🍎"),
+            new Cat("医药保健", "💊"),
+            new Cat("汽车用品", "🚗"),
+            new Cat("宠物生活", "🐾"),
+            new Cat("文玩收藏", "🏺"),
+            new Cat("乐器/音乐", "🎵"),
+            new Cat("潮玩/模型", "🎯"),
+            new Cat("游戏/电竞", "🎮"),
+            new Cat("票券/其他", "🎫")
+        );
 
-        int rootSort = 0;
-        for (var entry : seed.entrySet()) {
-            Category root = new Category();
-            root.setName(entry.getKey());
-            root.setParentId(null);
-            root.setSortOrder(rootSort++);
-            root.setCreatedAt(now);
-            root.setUpdatedAt(now);
-            Category saved = categoryRepo.save(root);
-
-            int childSort = 0;
-            for (String childName : entry.getValue()) {
-                Category child = new Category();
-                child.setName(childName);
-                child.setParentId(saved.getId());
-                child.setSortOrder(childSort++);
-                child.setCreatedAt(now);
-                child.setUpdatedAt(now);
-                categoryRepo.save(child);
-            }
+        int sort = 1; // 0 留给"推荐"
+        for (var c : seed) {
+            Category cat = new Category();
+            cat.setName(c.name());
+            cat.setIconUrl(c.icon());
+            cat.setParentId(null);
+            cat.setSortOrder(sort++);
+            cat.setCreatedAt(now);
+            cat.setUpdatedAt(now);
+            categoryRepo.save(cat);
         }
     }
 

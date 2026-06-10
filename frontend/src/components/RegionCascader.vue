@@ -53,10 +53,14 @@ function onCity(e) {
   manualDistrict.value = ''
   emit('update:city', selectedCity.value)
   emit('update:district', '')
-  // 如果该城市没有区县数据，自动将城市名作为区县值
-  if (!hasDistricts.value) {
-    // 稍后在渲染后检查
-  }
+  // 延迟检查：如果该城市只有一个区县，自动选中
+  setTimeout(() => {
+    if (districts.value.length === 1) {
+      selectedDistrict.value = districts.value[0].name
+      manualDistrict.value = districts.value[0].name
+      emit('update:district', districts.value[0].name)
+    }
+  }, 0)
 }
 function onDistrict(e) {
   selectedDistrict.value = e.target.value
@@ -102,11 +106,12 @@ function onManualDistrict(e) {
 }
 .sel, .inputLike {
   padding: 9px 10px;
-  border: 1px solid rgba(0,0,0,0.12);
+  border: 1px solid var(--border-default);
   border-radius: 10px;
   font-size: 14px;
   outline: none;
-  background: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 .sel:disabled, .inputLike:disabled { opacity: 0.5; }
 </style>

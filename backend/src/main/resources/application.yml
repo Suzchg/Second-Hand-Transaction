@@ -5,19 +5,19 @@ spring:
   application:
     name: secondhand
   datasource:
-    url: jdbc:h2:file:~/.secondhand/v2;MODE=MySQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: jdbc:mysql://localhost:3306/secondhand?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123000
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
   servlet:
     multipart:
       max-file-size: 10MB
@@ -28,7 +28,17 @@ springdoc:
     path: /swagger
 
 app:
+  # CDN 基础 URL（生产环境配置，开发环境留空使用本地路径）
+  # 例如: https://cdn.example.com 或 https://your-oss-bucket.oss-cn-hangzhou.aliyuncs.com
+  cdn-base-url:
   security:
     jwt:
       secret: secondhand-dev-secret-key-change-in-production-please
       access-token-expiration-minutes: 120
+
+# 物流查询配置
+logistics:
+  kuaidi100:
+    enabled: false  # true=使用快递100真实API, false=使用Mock模拟数据
+    customer: ""     # 快递100企业 customer ID
+    key: ""          # 快递100授权码 key

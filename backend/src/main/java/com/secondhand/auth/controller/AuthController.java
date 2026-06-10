@@ -8,6 +8,7 @@ import com.secondhand.auth.dto.RegisterRequest;
 import com.secondhand.auth.security.AuthPrincipal;
 import com.secondhand.auth.service.AuthService;
 import com.secondhand.common.ApiResponse;
+import com.secondhand.common.ratelimit.RateLimit;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,7 @@ public class AuthController {
     }
 
     /** 用户注册 */
+    @RateLimit(maxRequests = 5, windowSeconds = 60)
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(
             @Valid @RequestBody RegisterRequest req) {
@@ -45,6 +47,7 @@ public class AuthController {
     }
 
     /** 用户登录 */
+    @RateLimit(maxRequests = 10, windowSeconds = 60)
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody LoginRequest req) {

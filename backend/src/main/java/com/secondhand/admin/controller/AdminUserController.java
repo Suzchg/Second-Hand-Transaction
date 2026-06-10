@@ -5,11 +5,13 @@ import com.secondhand.admin.security.TokenBlacklist;
 import com.secondhand.auth.entity.User;
 import com.secondhand.auth.entity.UserStatus;
 import com.secondhand.auth.repository.UserRepository;
+import com.secondhand.auth.security.AuthPrincipal;
 import com.secondhand.common.ApiResponse;
 import com.secondhand.common.AppException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -60,9 +62,13 @@ public class AdminUserController {
         return ApiResponse.ok(userRepo.save(user));
     }
 
-    /** 强制下线 */
+    /** 强制下线（不允许管理员踢自己） */
     @PostMapping("/{id}/kick")
-    public ApiResponse<String> kick(@PathVariable Long id) {
+    public ApiResponse<String> kick(@AuthenticationPrincipal AuthPrincipal principal,
+                                     @PathVariable Long id) {
+        if (principal.userId() == id) {
+            throw new AppException("FORBIDDEN", "不能强制下线自己", HttpStatus.FORBIDDEN);
+        }
         userRepo.findById(id)
                 .orElseThrow(() -> new AppException("NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND));
         blacklist.add(id);

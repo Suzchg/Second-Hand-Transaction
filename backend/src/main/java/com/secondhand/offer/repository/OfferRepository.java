@@ -16,4 +16,6 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
     List<Offer> findBySellerIdOrderByCreatedAtDesc(Long sellerId);
 
     long countByProductIdAndStatus(Long productId, com.secondhand.offer.entity.OfferStatus status);
+
+    long countBySellerIdAndStatus(Long sellerId, com.secondhand.offer.entity.OfferStatus status);
 }

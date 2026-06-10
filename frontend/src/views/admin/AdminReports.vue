@@ -125,29 +125,38 @@ onMounted(() => load())
 </template>
 
 <style scoped>
-h2 { margin: 0 0 12px; font-size: 20px; }
+h2 { margin: 0 0 12px; font-size: 20px; color: var(--text-primary); }
 .bar { display: flex; gap: 8px; margin-bottom: 10px; }
-.sel { padding: 7px 10px; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; outline: none; background: white; }
-.btn { padding: 7px 12px; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; background: white; cursor: pointer; }
-.msg { padding: 6px 10px; background: #e8f5e9; border-radius: 8px; font-size: 13px; color: #2e7d32; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.05); }
-th { font-weight: 600; color: rgba(0,0,0,0.5); font-size: 12px; }
-.tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; background: rgba(0,0,0,0.06); }
-.tag.pending { background: #fff3e0; color: #e65100; }
-.tag.handled { background: #e8f5e9; color: #2e7d32; }
-.tag.dismissed { background: #fce4ec; color: #b00020; }
-.time { color: rgba(0,0,0,0.4); white-space: nowrap; font-size: 12px; }
+.sel {
+  padding: 7px 10px; border: 1px solid var(--border-default); border-radius: 8px;
+  outline: none; background: var(--bg-primary); color: var(--text-primary);
+}
+.btn {
+  padding: 7px 12px; border: 1px solid var(--border-default); border-radius: 8px;
+  background: var(--bg-primary); cursor: pointer; color: var(--text-secondary);
+}
+.msg { padding: 6px 10px; background: var(--success-bg); border-radius: 8px; font-size: 13px; color: var(--success); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text-primary); }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-light); }
+th { font-weight: 600; color: var(--text-tertiary); font-size: 12px; }
+.tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; background: var(--bg-secondary); color: var(--text-secondary); }
+.tag.pending { background: var(--warning-bg); color: var(--warning); }
+.tag.handled { background: var(--success-bg); color: var(--success); }
+.tag.dismissed { background: var(--error-bg); color: var(--error); }
+.time { color: var(--text-tertiary); white-space: nowrap; font-size: 12px; }
 .descCell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .actions { display: flex; gap: 6px; }
 .act {
-  padding: 4px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;
-  background: white; cursor: pointer; font-size: 11px;
+  padding: 4px 8px; border: 1px solid var(--border-default); border-radius: 6px;
+  background: var(--bg-primary); cursor: pointer; font-size: 11px; color: var(--text-secondary);
 }
-.act.danger { color: #b00020; border-color: #b00020; }
-.act.warn { color: #e65100; border-color: #e65100; }
-.muted { color: rgba(0,0,0,0.35); font-size: 11px; }
-.pager { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; }
-.pager button { padding: 6px 12px; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; background: white; cursor: pointer; }
+.act.danger { color: var(--error); border-color: var(--error-border); }
+.act.warn { color: var(--warning); border-color: var(--warning-border); }
+.muted { color: var(--text-tertiary); font-size: 11px; }
+.pager { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--text-primary); }
+.pager button {
+  padding: 6px 12px; border: 1px solid var(--border-default); border-radius: 8px;
+  background: var(--bg-primary); cursor: pointer; color: var(--text-secondary);
+}
 .pager button:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

@@ -1,6 +1,7 @@
 package com.secondhand.report.service;
 
 import com.secondhand.common.AppException;
+import com.secondhand.product.service.ProductService;
 import com.secondhand.report.entity.Report;
 import com.secondhand.report.entity.ReportReason;
 import com.secondhand.report.entity.ReportStatus;
@@ -17,13 +18,18 @@ import java.time.LocalDateTime;
 public class ReportService {
 
     private final ReportRepository reportRepo;
+    private final ProductService productService;
 
-    public ReportService(ReportRepository reportRepo) {
+    public ReportService(ReportRepository reportRepo, ProductService productService) {
         this.reportRepo = reportRepo;
+        this.productService = productService;
     }
 
     @Transactional
     public Report submit(Long reporterId, Long productId, ReportReason reasonType, String description) {
+        if (productService.getById(productId).getSellerId().equals(reporterId)) {
+            throw new AppException("FORBIDDEN", "不能举报自己的商品", HttpStatus.FORBIDDEN);
+        }
         Report r = new Report();
         r.setReporterId(reporterId);
         r.setProductId(productId);

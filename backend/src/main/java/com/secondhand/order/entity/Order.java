@@ -35,6 +35,7 @@ public class Order {
     @Column(name = "shipped_at") private LocalDateTime shippedAt;
     @Column(name = "completed_at") private LocalDateTime completedAt;
     @Column(name = "cancelled_at") private LocalDateTime cancelledAt;
+    @Column(name = "settled_at") private LocalDateTime settledAt;
 
     @Column(name = "created_at") private LocalDateTime createdAt;
     @Column(name = "updated_at") private LocalDateTime updatedAt;
@@ -66,6 +67,8 @@ public class Order {
     public void setCompletedAt(LocalDateTime t) { this.completedAt = t; }
     public LocalDateTime getCancelledAt() { return cancelledAt; }
     public void setCancelledAt(LocalDateTime t) { this.cancelledAt = t; }
+    public LocalDateTime getSettledAt() { return settledAt; }
+    public void setSettledAt(LocalDateTime t) { this.settledAt = t; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime t) { this.createdAt = t; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

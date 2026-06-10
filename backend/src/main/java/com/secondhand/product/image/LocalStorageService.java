@@ -1,5 +1,6 @@
 package com.secondhand.product.image;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -7,7 +8,6 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,14 +17,24 @@ import java.util.UUID;
  * 本地文件存储实现。
  * 文件保存在 ~/.secondhand/uploads/ 下。
  * 自动生成 200x200 缩略图。
+ * 支持 CDN 前缀配置。
  */
 @Service
 public class LocalStorageService implements StorageService {
 
     private final Path baseDir = Paths.get(System.getProperty("user.home"), ".secondhand", "uploads");
 
+    @Value("${app.cdn-base-url:}")
+    private String cdnBaseUrl;
+
     public LocalStorageService() {
         try { Files.createDirectories(baseDir); } catch (IOException ignored) {}
+    }
+
+    /** 拼接 CDN 前缀（如果配置了的话） */
+    private String cdn(String path) {
+        if (cdnBaseUrl == null || cdnBaseUrl.isBlank()) return path;
+        return cdnBaseUrl + path;
     }
 
     @Override
@@ -47,8 +57,8 @@ public class LocalStorageService implements StorageService {
             String relPath = "/uploads/" + namespace.replace("\\", "/") + "/";
             return new StoredFile(
                     file.getOriginalFilename(),
-                    relPath + filename,
-                    relPath + thumbName,
+                    cdn(relPath + filename),
+                    cdn(relPath + thumbName),
                     file.getSize()
             );
         } catch (IOException e) {

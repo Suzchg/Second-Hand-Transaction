@@ -12,6 +12,7 @@ const form = ref({
   receiverName: '', receiverPhone: '',
   province: '', city: '', district: '',
   detailAddress: '', isDefault: false,
+  tag: '',
 })
 const error = ref('')
 const loading = ref(false)
@@ -26,6 +27,7 @@ onMounted(async () => {
         receiverName: addr.receiverName, receiverPhone: addr.receiverPhone,
         province: addr.province, city: addr.city, district: addr.district,
         detailAddress: addr.detailAddress, isDefault: addr.isDefault,
+        tag: addr.tag || '',
       }
     }
   } catch { /* ignore */ }
@@ -71,6 +73,15 @@ async function submit() {
           :district="form.district"
         />
         <label>详细地址 <input v-model="form.detailAddress" placeholder="街道/小区/门牌号" /></label>
+        <label>地址标签</label>
+        <div class="tagRow">
+          <button
+            v-for="t in ['家','学校','公司','其他']" :key="t"
+            type="button"
+            :class="['tagBtn', { active: form.tag === t }]"
+            @click="form.tag = form.tag === t ? '' : t"
+          >{{ t }}</button>
+        </div>
         <label class="check">
           <input type="checkbox" v-model="form.isDefault" />
           设为默认地址
@@ -87,18 +98,37 @@ async function submit() {
 
 <style scoped>
 .page { max-width: 460px; margin: 0 auto; }
-h2 { margin: 0 0 16px; font-size: 20px; }
-.card { border: 1px solid rgba(0,0,0,0.08); border-radius: 16px; padding: 18px; background: white; }
-.form { display: grid; gap: 10px; }
-label { display: grid; gap: 4px; font-size: 13px; color: rgba(0,0,0,0.7); }
-input { padding: 9px 10px; border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; outline: none; }
-.check { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.check input { width: 16px; height: 16px; }
-.btn {
-  padding: 9px 14px; border: 1px solid rgba(0,0,0,0.12); border-radius: 10px;
-  background: white; cursor: pointer; font-size: 14px;
+h2 { margin: 0 0 16px; font-size: 20px; color: var(--text-primary); }
+.card {
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--bg-primary);
 }
-.btn.primary { background: black; color: white; border-color: black; }
+.form { display: grid; gap: 10px; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--text-secondary); }
+input, select {
+  padding: 9px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  outline: none;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.check { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.check input { width: 16px; height: 16px; accent-color: var(--brand); }
+.tagRow { display: flex; gap: 8px; }
+.tagBtn {
+  padding: 6px 14px; border: 1px solid var(--border-default); border-radius: 20px;
+  background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; font-size: 13px; transition: all 0.12s;
+}
+.tagBtn:hover { border-color: var(--border-strong); }
+.tagBtn.active { background: var(--info); color: white; border-color: var(--info); }
+.btn {
+  padding: 9px 14px; border: 1px solid var(--border-default); border-radius: 10px;
+  background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-size: 14px;
+}
+.btn.primary { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
 .btn:disabled { opacity: 0.5; }
-.error { color: #b00020; font-size: 13px; margin: 0; }
+.error { color: var(--error); font-size: 13px; margin: 0; }
 </style>

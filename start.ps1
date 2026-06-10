@@ -4,6 +4,20 @@ Write-Host "  SecondHand System - Starting..." -ForegroundColor Green
 Write-Host "======================================" -ForegroundColor Green
 Write-Host ""
 
+# Ensure MySQL is running
+$mysqlSvc = Get-Service -Name "MySQL*" -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($mysqlSvc) {
+    if ($mysqlSvc.Status -ne "Running") {
+        Write-Host "Starting MySQL ($($mysqlSvc.Name))..." -ForegroundColor Yellow
+        Start-Service $mysqlSvc.Name
+        Write-Host "  MySQL started." -ForegroundColor Green
+    } else {
+        Write-Host "MySQL ($($mysqlSvc.Name)) already running." -ForegroundColor Gray
+    }
+} else {
+    Write-Host "WARNING: MySQL service not found. Make sure MySQL is installed." -ForegroundColor Red
+}
+
 # Set JDK 24 as JAVA_HOME (required for Spring Boot 3)
 $env:JAVA_HOME = "D:\JAVA\IDK24"
 $env:PATH = "${env:JAVA_HOME}\bin;$env:PATH"
@@ -22,5 +36,5 @@ Write-Host "Then open in browser:" -ForegroundColor Yellow
 Write-Host "  Frontend:  http://localhost:5173" -ForegroundColor Green
 Write-Host "  Backend:   http://localhost:8088" -ForegroundColor Green
 Write-Host "  Swagger:   http://localhost:8088/swagger" -ForegroundColor Green
-Write-Host "  H2 Console: http://localhost:8088/h2-console" -ForegroundColor Green
+Write-Host "  DBeaver:   jdbc:mysql://localhost:3306/secondhand" -ForegroundColor Green
 Write-Host ""
