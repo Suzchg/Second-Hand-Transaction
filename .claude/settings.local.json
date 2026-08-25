@@ -16,7 +16,11 @@
       "Bash(python *)",
       "Bash(pip install *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(cmd.exe //c \"mvnw.cmd clean package -DskipTests -q\")",
+      "Bash(./mvnw.cmd spring-boot:run -DskipTests)",
+      "Bash(mysql *)"
     ]
   }
 }
