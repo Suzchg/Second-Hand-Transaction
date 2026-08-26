@@ -20,7 +20,10 @@ spec:
         image: secondhand-mysql:v1.0
         env:
         - name: MYSQL_ROOT_PASSWORD
-          value: "3401248245whzX" 
+          valueFrom:
+            secretKeyRef:
+              name: secondhand-secrets
+              key: mysql-root-password
         - name: MYSQL_DATABASE
           value: "secondhand" 
         ports:
@@ -63,7 +66,10 @@ spec:
         - name: SPRING_DATASOURCE_USERNAME
           value: "root"
         - name: SPRING_DATASOURCE_PASSWORD
-          value: "3401248245whzX" 
+          valueFrom:
+            secretKeyRef:
+              name: secondhand-secrets
+              key: mysql-root-password
         ports:
         - containerPort: 8088
         volumeMounts:
