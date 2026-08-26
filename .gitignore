@@ -7,3 +7,4 @@ dist-exe/
 .DS_Store
 Thumbs.db
 *.log
+.env

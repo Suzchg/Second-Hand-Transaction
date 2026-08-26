@@ -23,7 +23,7 @@ jobs:
           java-version: "17"
           cache: maven
           cache-dependency-path: backend/pom.xml
-      - name: Test and package
+      - name: 单元测试、MySQL 集成测试与打包
         run: mvn --batch-mode --no-transfer-progress verify
 
   frontend:

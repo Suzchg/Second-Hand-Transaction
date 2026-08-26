@@ -5,6 +5,8 @@
 - `CI`：推送或创建 Pull Request 时，运行前后端测试、前端构建，并验证三个 Docker 镜像可以构建。
 - `CD`：代码合并到 `master` 后，重新测试，发布 `backend`、`frontend`、`mysql` 镜像到 GHCR，再部署到 Kubernetes。
 
+后端的 `mvn verify` 包含基于 Testcontainers 和真实 MySQL 8.0 的注册/登录集成测试。镜像发布依赖测试成功，Kubernetes 部署依赖全部镜像发布成功。
+
 ## 1. 准备 Kubernetes
 
 目标集群需要满足：
@@ -49,9 +51,12 @@ git push -u origin ci/cd
 kubectl -n secondhand get pods,svc,pvc
 kubectl -n secondhand get service frontend
 kubectl -n secondhand logs deployment/backend --tail=100
+bash scripts/health-check.sh
 ```
 
 访问地址为 `http://<任一 Kubernetes 节点 IP>:30080`。
+
+流水线通过 `scripts/deploy.sh` 渲染带 Git commit SHA 版本号的清单并等待三个 Deployment 完成，再由 `scripts/health-check.sh` 实际请求前端和后端 API。任何脚本返回非零状态，后续步骤都会停止。
 
 ## 5. 安全注意事项
 

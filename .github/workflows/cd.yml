@@ -27,7 +27,8 @@ jobs:
           java-version: "17"
           cache: maven
           cache-dependency-path: backend/pom.xml
-      - run: mvn --batch-mode --no-transfer-progress verify
+      - name: 单元测试与真实 MySQL 集成测试
+        run: mvn --batch-mode --no-transfer-progress verify
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -118,13 +119,10 @@ jobs:
             --docker-username="$GHCR_USERNAME" \
             --docker-password="$GHCR_TOKEN" \
             --dry-run=client -o yaml | kubectl apply -f -
-      - name: Apply manifests
+      - name: 部署清单并等待滚动更新
         env:
           IMAGE_ROOT: ${{ needs.prepare.outputs.image-root }}
           IMAGE_TAG: ${{ github.sha }}
-        run: |
-          sed -e "s|__IMAGE_ROOT__|$IMAGE_ROOT|g" -e "s|__IMAGE_TAG__|$IMAGE_TAG|g" \
-            k8s/production.yaml | kubectl apply -f -
-          kubectl -n secondhand rollout status deployment/mysql --timeout=180s
-          kubectl -n secondhand rollout status deployment/backend --timeout=180s
-          kubectl -n secondhand rollout status deployment/frontend --timeout=180s
+        run: bash scripts/deploy.sh
+      - name: 端到端健康检查
+        run: bash scripts/health-check.sh
