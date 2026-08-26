@@ -11,7 +11,12 @@ RUN rm -f target/*-plain.jar target/*.original
 # 第二阶段：运行环境
 FROM eclipse-temurin:17-jre
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 # 此时 target 目录下必定只有唯一正确的启动包
 COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8088
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
+  CMD curl --fail --silent http://localhost:8088/actuator/health/readiness || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]

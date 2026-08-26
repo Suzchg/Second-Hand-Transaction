@@ -61,8 +61,11 @@ spec:
             - name: data
               mountPath: /var/lib/mysql
           readinessProbe:
-            tcpSocket:
-              port: 3306
+            exec:
+              command:
+                - sh
+                - -c
+                - mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent
             initialDelaySeconds: 10
             periodSeconds: 5
           resources:
@@ -132,10 +135,17 @@ spec:
             - name: uploads
               mountPath: /root/.secondhand/uploads
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/readiness
               port: 8088
             initialDelaySeconds: 15
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8088
+            initialDelaySeconds: 45
+            periodSeconds: 10
           resources:
             requests:
               cpu: 100m
@@ -220,6 +230,12 @@ spec:
               port: 80
             initialDelaySeconds: 5
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
           resources:
             requests:
               cpu: 25m

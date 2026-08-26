@@ -1,0 +1,66 @@
+services:
+  mysql:
+    build:
+      context: ./db
+    image: secondhand-mysql:${IMAGE_TAG:-local}
+    environment:
+      MYSQL_DATABASE: secondhand
+      MYSQL_USER: secondhand
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?copy .env.example to .env and set MYSQL_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?copy .env.example to .env and set MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    image: secondhand-backend:${IMAGE_TAG:-local}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/secondhand?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: secondhand
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?copy .env.example to .env and set MYSQL_PASSWORD}
+      APP_SECURITY_JWT_SECRET: ${JWT_SECRET:?copy .env.example to .env and set JWT_SECRET}
+    ports:
+      - "${BACKEND_PORT:-8088}:8088"
+    volumes:
+      - uploads:/root/.secondhand/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8088/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: secondhand-frontend:${IMAGE_TAG:-local}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  uploads:
