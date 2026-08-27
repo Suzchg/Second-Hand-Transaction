@@ -69,6 +69,59 @@
 
 ## 🚀 快速启动
 
+### 推荐：使用 Docker Compose 换机启动
+
+新机器只需要安装以下软件，无需单独安装 JDK、Node.js 或 MySQL：
+
+- Git
+- Docker Desktop（Windows/macOS）或 Docker Engine（Linux）
+- Docker Compose v2（执行 `docker compose version` 可以检查）
+
+克隆并启动：
+
+```bash
+git clone https://github.com/Suzchg/Second-Hand-Transaction.git
+cd Second-Hand-Transaction
+cp .env.example .env
+docker compose up --build -d
+docker compose ps
+```
+
+Windows PowerShell 使用：
+
+```powershell
+git clone https://github.com/Suzchg/Second-Hand-Transaction.git
+Set-Location Second-Hand-Transaction
+Copy-Item .env.example .env
+docker compose up --build -d
+docker compose ps
+```
+
+启动成功后访问：
+
+| 服务 | 地址 |
+|------|------|
+| 前端 | http://localhost:8080 |
+| 后端健康状态 | http://localhost:8088/actuator/health/readiness |
+| 后端 API | http://localhost:8088/api |
+| MySQL | localhost:3306 |
+
+首次启动时，MySQL 会执行 `db/init.sql` 创建表并导入项目测试数据。数据保存在 Docker Volume 中，重新构建镜像不会清空数据库和上传文件。
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+仅在确定要删除全部数据库和上传数据时使用：
+
+```bash
+docker compose down --volumes
+```
+
+可通过 `.env` 修改密码和映射端口。正式环境不要使用 `.env.example` 中的示例密码。
+
 ### 一键启动（Windows）
 
 ```powershell
@@ -328,12 +381,33 @@ logistics:
 ```bash
 # 后端测试
 cd backend
-./mvnw.cmd test
+./mvnw.cmd verify
 
 # 前端测试
 cd frontend
 npm test
 ```
+
+`mvn verify` 会依次执行：
+
+1. Mockito 单元测试；
+2. 使用 Testcontainers 启动真实 MySQL 8.0；
+3. 启动完整 Spring Boot 上下文；
+4. 通过 HTTP 完成注册、数据库持久化和登录集成测试。
+
+运行集成测试需要本机 Docker 正在运行。GitHub CI/CD 会自动执行这些测试，测试失败时不会构建和部署生产镜像。
+
+Kubernetes 手动部署和健康检查脚本：
+
+```bash
+IMAGE_ROOT=ghcr.io/<owner>/<repository> \
+IMAGE_TAG=<git-commit-sha> \
+bash scripts/deploy.sh
+
+bash scripts/health-check.sh
+```
+
+健康检查会通过 Kubernetes 端口转发实际访问前端首页和 `/api/categories`。任一请求失败时脚本返回非零状态，CD 流水线随即失败。
 
 ---
 

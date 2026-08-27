@@ -37,6 +37,17 @@ app:
       access-token-expiration-minutes: 120
 
 # 物流查询配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
 logistics:
   kuaidi100:
     enabled: false  # true=使用快递100真实API, false=使用Mock模拟数据
