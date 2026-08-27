@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master, ci/cd]
+    branches: [main, master, feature/HCCELL]
   pull_request:
 
 permissions:
