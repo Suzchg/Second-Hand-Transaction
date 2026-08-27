@@ -24,6 +24,7 @@ import com.secondhand.rating.entity.Rating;
 import com.secondhand.rating.repository.RatingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,10 @@ import java.util.*;
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
+
+    /** 是否生成演示数据；E2E 测试环境可关闭（默认开启） */
+    @Value("${app.seed.enabled:true}")
+    private boolean seedEnabled;
 
     private final UserRepository userRepo;
     private final UserIdentityRepository identityRepo;
@@ -202,6 +207,10 @@ public class DataSeeder implements CommandLineRunner {
     // ================================================================
     @Override
     public void run(String... args) {
+        if (!seedEnabled) {
+            log.info("[DataSeeder] 演示数据生成已关闭（app.seed.enabled=false）");
+            return;
+        }
         try {
             if (identityRepo.findByIdentityTypeAndIdentifier(IdentityType.PHONE, "13800000001").isPresent()) {
                 log.info("[DataSeeder] 演示数据已存在，跳过");
