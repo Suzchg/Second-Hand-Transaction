@@ -20,8 +20,8 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: secondhand_e2e
+          MYSQL_ROOT_PASSWORD: 123000       # 改为与 backend/src/main/resources
+          MYSQL_DATABASE: secondhand       # 改为与 application.yml 中一致
         ports:
           - 3306:3306
         options: >-
