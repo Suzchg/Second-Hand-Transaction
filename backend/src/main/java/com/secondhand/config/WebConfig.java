@@ -1,6 +1,7 @@
 package com.secondhand.config;
 
 import com.secondhand.common.ratelimit.RateLimitInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -16,10 +17,16 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    /** 是否启用接口限流；E2E 测试环境可关闭（默认开启） */
+    @Value("${app.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RateLimitInterceptor())
-                .addPathPatterns("/api/**");
+        if (rateLimitEnabled) {
+            registry.addInterceptor(new RateLimitInterceptor())
+                    .addPathPatterns("/api/**");
+        }
     }
 
     @Override
