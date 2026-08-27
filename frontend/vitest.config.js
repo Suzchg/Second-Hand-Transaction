@@ -6,7 +6,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    // 排除 Playwright e2e 测试目录，避免 Vitest 载入这些文件
-    exclude: ['**/src/__tests__/e2e/**'],
+    // 明确排除 Playwright e2e 目录
+    exclude: ['**/src/__tests__/e2e/**', '**/e2e/**', '**/src/**/e2e/**'],
+    // 只包含单元测试文件（按你项目的单元测试命名约定调整）
+    include: ['src/__tests__/**/*.test.{js,ts}', 'src/**/*.test.{js,ts}'],
   },
 })
