@@ -1,0 +1,31 @@
+server:
+  port: 8088
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/secondhand_e2e?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: ${E2E_DB_PASSWORD:123000}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+app:
+  rate-limit:
+    enabled: false
+  seed:
+    enabled: false
+  security:
+    jwt:
+      secret: browser-e2e-secret-not-for-production
+      access-token-expiration-minutes: 120
+
+logistics:
+  kuaidi100:
+    enabled: false
