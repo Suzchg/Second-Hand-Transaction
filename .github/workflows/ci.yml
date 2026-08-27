@@ -16,8 +16,8 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: secondhand_e2e
+          MYSQL_ROOT_PASSWORD: 123000
+          MYSQL_DATABASE: secondhand
         ports:
           - 3306:3306
         options: >-
