@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/swagger/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 商品分类和列表开放查看
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/*/comments").permitAll()
                         // 卖家信息公开
                         .requestMatchers(HttpMethod.GET, "/api/users/*/public", "/api/users/*/products", "/api/users/*/sold", "/api/users/*/rating").permitAll()
