@@ -381,21 +381,36 @@ logistics:
 ```bash
 # 后端测试
 cd backend
-./mvnw.cmd verify
+./mvnw.cmd clean verify
+python ../scripts/summarize_tests.py
 
 # 前端测试
 cd frontend
 npm test
 ```
 
-`mvn verify` 会依次执行：
+`mvn clean verify` 会执行：
 
-1. Mockito 单元测试；
-2. 使用 Testcontainers 启动真实 MySQL 8.0；
-3. 启动完整 Spring Boot 上下文；
-4. 通过 HTTP 完成注册、数据库持久化和登录集成测试。
+1. Surefire：既有单元测试，以及随机端口真实 HTTP 的后端 E2E 测试；
+2. Failsafe：7 大业务场景的集成/API 测试（`*IT`），使用完整 Spring Security → Controller → Service → JPA → MySQL 链路；
+3. 对 HTTP 状态、响应业务字段、数据库提交结果、异常后的回滚和通知进行断言。
 
-运行集成测试需要本机 Docker 正在运行。GitHub CI/CD 会自动执行这些测试，测试失败时不会构建和部署生产镜像。
+MySQL 8.0 由 Testcontainers 自动创建并清理，使用随机端口，不依赖本机 3306 或开发数据库。
+测试不替换 Controller、Service 或 Repository；物流使用项目现有 Mock 实现，未接入真实支付/快递服务。
+
+仅运行集成/API 测试（不重复运行单元和 E2E）：
+
+```powershell
+cd backend
+.\mvnw.cmd test-compile failsafe:integration-test failsafe:verify
+```
+
+报告见 [集成/API 测试用例与报告](集成API测试用例与报告.md)。
+XML 原始结果在 `backend/target/surefire-reports/`、`backend/target/failsafe-reports/`；
+完整验证后运行汇总脚本可生成 `backend/target/test-report.md`，包含总数、通过数、失败原因、环境及参数化用例明细。
+汇总脚本遇到缺少必测类、失败、执行错误或跳过时返回非零退出码；单独运行某一类测试后不应将其输出当作完整报告。
+
+运行集成和 E2E 测试需要本机 Docker 正在运行。GitHub CI/CD 会自动执行完整验证并保留测试报告（失败时也上传）；测试失败时不会继续构建、发布或部署生产镜像。
 
 Kubernetes 手动部署和健康检查脚本：
 
