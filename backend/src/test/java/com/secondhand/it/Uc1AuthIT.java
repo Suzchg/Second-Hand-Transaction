@@ -19,7 +19,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - 主成功：新手机号注册获得凭证并持久化 → 正确密码登录成功
  * - 备选  ：邮箱注册（大小写归一化）、修改密码后以新密码登录
  * - 异常  ：重复注册（409）、密码过短（400）、错误密码（401）、
- *           账号不存在（401）、账号被禁用（403）、未携带 token（401）
+ *           账号不存在（401）、账号被禁用（403）、未携带 token（401）、
+ *           无 token 访问 /me（401，已修复：原为 500 NPE）
  *
  * 验证层次：HTTP API（AuthController）→ 业务（AuthService）→ 数据库（User/UserIdentity 持久化）
  * 模块间调用：AdminUserController 禁用账号 → 影响 AuthService 登录校验
@@ -211,12 +212,25 @@ class Uc1AuthIT extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("认证缺失：未携带token访问受保护接口被拒绝（403）")
+        @DisplayName("认证缺失：未携带token访问受保护接口返回401（已修复：补充了AuthenticationEntryPoint）")
         void protectedEndpointWithoutTokenRejected() throws Exception {
-            // /api/orders/bought 需要认证；未携带 token 被安全链拒绝
-            // （应用未配置自定义 AuthenticationEntryPoint，Spring Security 默认返回 403）
+            // /api/orders/bought 需要认证；未携带 token 被安全链拒绝，
+            // 已配置 RestAuthenticationEntryPoint，返回 401 + 统一 JSON 错误体（原为无 body 的 403）
             doGet("/api/orders/bought", null)
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+        }
+
+        @Test
+        @DisplayName("获取当前用户未认证：无token访问/api/auth/me返回401（已修复：原为500 NPE）")
+        void meWithoutTokenReturnsUnauthorized() throws Exception {
+            // /api/auth/me 不再随 /api/auth/** 整体放行，落入 authenticated()；
+            // 修复前：permitAll 放行后 @AuthenticationPrincipal 注入 null → NPE → 500
+            doGet("/api/auth/me", null)
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
         }
     }
 }

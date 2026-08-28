@@ -18,7 +18,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Spring Security 配置。
  *
  * 策略：
- * - /api/** 路径：JWT 无状态认证，开放 auth 和部分 GET 接口，其余需认证
+ * - /api/** 路径：JWT 无状态认证，开放 auth 注册/登录和部分 GET 接口，其余需认证；
+ *   未认证返回 401、已认证但权限不足返回 403（统一 JSON 格式，见 RestAuthHandlers）
  * - 其他路径：全部放行（用于 SPA 静态资源）
  */
 @Configuration
@@ -27,9 +28,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final RestAuthHandlers.RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAuthHandlers.RestAccessDeniedHandler restAccessDeniedHandler;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter,
+                          RestAuthHandlers.RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+                          RestAuthHandlers.RestAccessDeniedHandler restAccessDeniedHandler) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+        this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
 
     /** API 路径安全配置：无状态 + JWT */
@@ -41,13 +48,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 认证接口全部开放
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // 认证接口：仅注册/登录开放；/me、/heartbeat、/password/change
+                        // 需要认证（避免无 token 时 @AuthenticationPrincipal 为 null 引发 NPE）
+                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         // Swagger / OpenAPI 文档开放
                         .requestMatchers("/swagger/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 商品分类和列表开放查看
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/*/comments").permitAll()
                         // 卖家信息公开
                         .requestMatchers(HttpMethod.GET, "/api/users/*/public", "/api/users/*/products", "/api/users/*/sold", "/api/users/*/rating").permitAll()
@@ -60,6 +68,10 @@ public class SecurityConfig {
                         // 其余 API 需要认证
                         .anyRequest().authenticated()
                 )
+                // 未认证 → 401 UNAUTHORIZED；已认证但权限不足 → 403 FORBIDDEN（统一 JSON 响应）
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

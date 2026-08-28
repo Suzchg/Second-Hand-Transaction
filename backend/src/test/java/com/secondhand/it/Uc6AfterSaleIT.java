@@ -18,7 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - 备选  ：仅退款直接退款完结；卖家拒绝→买家申请平台介入→管理员仲裁全额退款；
  *           仲裁驳回→售后关闭且订单恢复
  * - 异常  ：非买家申请（403）、确认收货前申请（403）、重复申请（409）、
- *           非卖家审批（403）、完结后审批（409）、未进入仲裁状态仲裁（404/409）、订单不存在（404）
+ *           非卖家审批（403）、完结后审批（409）、未进入仲裁状态仲裁（404/409）、订单不存在（404）、
+ *           非管理员仲裁（403，已修复：补充 ADMIN 角色校验）
  *
  * 验证层次：AfterSaleController → AfterSaleService（联动 OrderRepository）双模块落库
  */
@@ -280,6 +281,32 @@ class Uc6AfterSaleIT extends AbstractIntegrationTest {
                     """)
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+        }
+
+        @Test
+        @DisplayName("非管理员仲裁：普通用户调用仲裁接口返回403（已修复：越权风险）")
+        void arbitrateByNonAdminForbidden() throws Exception {
+            // 与备选流程仲裁测试相同的前置链路：申请→拒绝→平台介入→PLATFORM_ARBITRATION
+            CompletedOrderFixture f = completedOrder();
+            long requestId = requestReturnRefund(f);
+
+            doPost("/api/after-sale/%d/reject".formatted(requestId), f.seller().token(), null)
+                    .andExpect(status().isOk());
+            doPost("/api/after-sale/%d/escalate".formatted(requestId), f.buyer().token(), null)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.status").value("PLATFORM_ARBITRATION"));
+
+            // 普通用户（买家）携带有效 token 调用仲裁 → 403 FORBIDDEN
+            // （修复前无 ADMIN 角色校验，任何登录用户都能裁决售后单）
+            doPost("/api/after-sale/%d/arbitrate".formatted(requestId), f.buyer().token(), """
+                    {"result":"FULL_REFUND","note":"普通用户越权仲裁尝试"}
+                    """)
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+
+            // 售后单仍停留在平台仲裁状态，未被普通用户裁决
+            org.junit.jupiter.api.Assertions.assertEquals("PLATFORM_ARBITRATION",
+                    afterSaleRepo.findById(requestId).orElseThrow().getStatus().name());
         }
 
         @Test

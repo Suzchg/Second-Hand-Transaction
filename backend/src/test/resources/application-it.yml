@@ -1,0 +1,39 @@
+# 集成测试专用配置（profile: it）
+# 数据源由 AbstractIntegrationTest 根据系统属性 it.db 动态决定：
+#   - it.db=h2    （默认）H2 内存库（MySQL 兼容模式）
+#   - it.db=mysql Testcontainers + MySQL 8.0（见 SharedMySqlContainer）
+spring:
+  datasource:
+    url: jdbc:h2:mem:itdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        # 覆盖主配置的 MySQLDialect（H2 模式必须用 H2 方言；
+        # MySQL 模式下由 @DynamicPropertySource 覆盖回 MySQLDialect）
+        dialect: org.hibernate.dialect.H2Dialect
+  sql:
+    init:
+      mode: never
+
+app:
+  # 关闭演示数据播种，保证测试数据隔离
+  seed:
+    enabled: false
+  # 关闭注册/登录限流，便于测试内多次调用认证接口
+  rate-limit:
+    enabled: false
+  security:
+    jwt:
+      secret: it-integration-test-secret-key-0123456789abcdef
+      access-token-expiration-minutes: 60
+
+logistics:
+  kuaidi100:
+    enabled: false   # 集成测试使用 Mock 物流轨迹

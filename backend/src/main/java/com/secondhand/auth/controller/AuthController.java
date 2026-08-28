@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
  * - POST /api/auth/register       注册
  * - POST /api/auth/login          登录
  * - GET  /api/auth/me             获取当前用户信息（需认证）
+ * - POST /api/auth/heartbeat      心跳维持在线状态（需认证）
  * - POST /api/auth/password/change 修改密码（需认证）
  */
 @RestController

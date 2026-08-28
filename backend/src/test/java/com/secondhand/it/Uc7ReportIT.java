@@ -135,15 +135,18 @@ class Uc7ReportIT extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("未登录举报：返回403（安全链拒绝）")
+        @DisplayName("未登录举报：返回401（已修复：补充了AuthenticationEntryPoint）")
         void reportWithoutTokenRejected() throws Exception {
             TestUser seller = registerUser();
             long productId = createProduct(seller.token(), "未登录举报目标", 2500);
 
+            // 无 token 举报被安全链拒绝；已配置 RestAuthenticationEntryPoint，
+            // 返回 401 + 统一 JSON 错误体（原为无 body 的 403）
             doPost("/api/products/%d/report".formatted(productId), null, """
                     {"reasonType":"OTHER","description":"未登录举报"}
                     """)
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
         }
 
         @Test

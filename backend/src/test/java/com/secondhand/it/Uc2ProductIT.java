@@ -138,12 +138,15 @@ class Uc2ProductIT extends AbstractIntegrationTest {
     class ExceptionFlow {
 
         @Test
-        @DisplayName("未登录发布商品：返回403（安全链拒绝，未配置401入口点）")
+        @DisplayName("未登录发布商品：返回401（已修复：补充了AuthenticationEntryPoint）")
         void createWithoutTokenRejected() throws Exception {
+            // 无 token 发布商品被安全链拒绝；已配置 RestAuthenticationEntryPoint，
+            // 返回 401 + 统一 JSON 错误体（原为无 body 的 403）
             doPost("/api/products", null, """
                     {"title":"未登录商品","priceCent":1000,"description":"x"}
                     """)
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
         }
 
         @Test

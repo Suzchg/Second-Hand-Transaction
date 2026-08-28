@@ -5,6 +5,7 @@ import com.secondhand.aftersale.entity.AfterSaleType;
 import com.secondhand.aftersale.service.AfterSaleService;
 import com.secondhand.auth.security.AuthPrincipal;
 import com.secondhand.common.ApiResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -109,6 +110,7 @@ public class AfterSaleController {
     }
 
     /** 平台仲裁（管理员） */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/arbitrate")
     public ApiResponse<AfterSaleRequest> arbitrate(
             @AuthenticationPrincipal AuthPrincipal principal,
@@ -126,7 +128,8 @@ public class AfterSaleController {
         return ApiResponse.ok(afterSaleService.cancelByBuyer(principal.userId(), requestId));
     }
 
-    /** 超时处理（定时任务/手动触发） */
+    /** 超时处理（定时任务/手动触发，仅管理员可手动触发） */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/process-timeouts")
     public ApiResponse<String> processTimeouts() {
         afterSaleService.processTimeouts();
@@ -164,6 +167,7 @@ public class AfterSaleController {
     }
 
     /** 管理员：所有售后单 */
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ApiResponse<List<AfterSaleRequest>> all(
             @AuthenticationPrincipal AuthPrincipal principal,
