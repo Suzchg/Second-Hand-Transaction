@@ -16,19 +16,6 @@ concurrency:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: 123000       # 改为与 backend/src/main/resources
-          MYSQL_DATABASE: secondhand       # 改为与 application.yml 中一致
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
     defaults:
       run:
         working-directory: backend
@@ -41,7 +28,19 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
       - name: 单元测试与真实 MySQL 集成测试
-        run: mvn --batch-mode --no-transfer-progress verify
+        run: mvn --batch-mode --no-transfer-progress clean verify
+      - name: 汇总测试结果（包括失败原因）
+        if: always()
+        run: python3 ../scripts/summarize_tests.py
+      - name: 保存测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+            backend/target/test-report.md
 
   test-frontend:
     runs-on: ubuntu-latest
