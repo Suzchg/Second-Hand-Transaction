@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './src/__tests__/e2e',
   fullyParallel: false,
   workers: 1,
   timeout: 120000,
@@ -25,7 +25,7 @@ export default defineConfig({
     },
     {
       // 后端：browser-e2e profile（独立库 secondhand_e2e，限流/演示数据关闭）
-      command: 'node e2e/start-backend.mjs',
+      command: 'node src/__tests__/e2e/start-backend.mjs',
       url: 'http://localhost:8088/api/categories',
       reuseExistingServer: true,
       timeout: 300000,

@@ -6,9 +6,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const backendDir = path.resolve(__dirname, '..', '..', 'backend')
+// 本文件位于 frontend/src/__tests__/e2e/，向上 4 级到仓库根目录再进入 backend。
+const backendDir = path.resolve(__dirname, '..', '..', '..', '..', 'backend')
 const mvnwPath = path.join(backendDir, 'mvnw.cmd')
-const javaHome = process.env.JAVA_HOME || 'D:\\JAVA\\IDK24'
+const javaHome = process.env.JAVA_HOME
+if (!javaHome) {
+  console.error('[start-backend] 未设置 JAVA_HOME 环境变量，无法定位 JDK（项目需要 JDK 17+）')
+  process.exit(1)
+}
 
 const child = spawn(
   'cmd.exe',
