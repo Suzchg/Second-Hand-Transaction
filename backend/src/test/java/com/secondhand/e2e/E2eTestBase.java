@@ -2,6 +2,7 @@ package com.secondhand.e2e;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.secondhand.testutil.MySqlTestSupport;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatusCode;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("e2e")
-abstract class E2eTestBase {
+abstract class E2eTestBase extends MySqlTestSupport {
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected static final AtomicLong SEQ = new AtomicLong(0);

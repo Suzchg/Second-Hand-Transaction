@@ -437,7 +437,8 @@ Docker Compose 运行时可通过 `.env` 文件修改端口和密码。
 ```bash
 # 后端测试（单元测试 + Testcontainers 集成测试，需本机 Docker）
 cd backend
-./mvnw.cmd verify
+./mvnw.cmd clean verify
+python ../scripts/summarize_tests.py
 
 # 前端测试
 cd frontend

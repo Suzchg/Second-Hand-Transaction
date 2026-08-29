@@ -1,5 +1,8 @@
 # 二手交易平台后端端到端测试用例与报告
 
+> 本文是原有 E2E 测试的历史报告，下面的固定数据库、旧类名和运行数据不代表当前配置。
+> 2026-08-28 起，E2E 已改用临时 Testcontainers MySQL；当前运行方式和回归结果见 [集成/API 测试用例与报告](集成API测试用例与报告.md)。
+
 > 测试范围：后端 7 大核心业务场景的完整业务流程（端到端）
 > 测试方式：启动完整 Spring Boot 上下文（随机端口），通过真实 HTTP 链路（Spring Security → Controller → Service → Repository → MySQL）逐接口调用并断言
 > 测试库：独立 MySQL 测试库 `secondhand_test`（不污染开发库 `secondhand`）
